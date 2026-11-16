@@ -205,6 +205,7 @@ On the tenant page, open WR-0002 and click **Withdraw request**.
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
+| Page loads, but the dropdown is empty or buttons do nothing (browser console shows "el is not defined") | `Shared.html` is missing, misnamed or has the wrong contents | Confirm a file named exactly `Shared.html` starts with `<script>` and contains `function el(`; save and publish a new version |
 | Only "Sheet1" at the bottom of the Sheet | Setup didn't run or failed | Run **setup** again and read the Execution log |
 | "Missing tab..." error | Tabs renamed or deleted | Restore the original tab names, or run **setup** |
 | Permission screen says "**all** of your Google Drive files" | Old manifest | Replace `appsscript.json`, then run setup again |

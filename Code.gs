@@ -1,5 +1,5 @@
 /**
- * Work Request Tracker
+ * Work Request Tracker v1.2.0
  * A simple, reusable repair-request workflow between a tenant and a landlord.
  *
  * - Data lives in the Google Sheet this script is bound to.
@@ -11,6 +11,8 @@
  * Setup: run setup() once from the Apps Script editor, then deploy as a web app
  * (Execute as: Me, Who has access: Anyone). See README.md.
  */
+
+const APP_VERSION = '1.2.0';
 
 const SHEET_REQUESTS = 'Requests';
 const SHEET_LOG = 'Log';
@@ -108,7 +110,7 @@ function setup() {
   photoFolder_();
   SpreadsheetApp.flush();
   try { cfg.activate(); } catch (e) { /* run from editor */ }
-  notify_('Setup complete',
+  notify_('Setup complete (v' + APP_VERSION + ')',
     'Next steps:\n\n' +
     '1. On this Config tab, fill in the names, emails and response times in column B. ' +
     'Use your own email for LANDLORD_EMAIL while testing.\n\n' +
@@ -142,7 +144,7 @@ function showLinks() {
       box('Your tenant link', 'Bookmark it and keep it private. It works like a password.', tenant, 't') +
       box('Landlord overview link (optional)', 'Lists all requests. The landlord also gets a link in every email.', landlord, 'l') +
       '</div>').setWidth(520).setHeight(360);
-    SpreadsheetApp.getUi().showModalDialog(html, 'Your links');
+    SpreadsheetApp.getUi().showModalDialog(html, 'Your links (v' + APP_VERSION + ')');
   } catch (e) { /* run from editor: links are in the execution log */ }
 }
 
@@ -185,6 +187,7 @@ function doGet(e) {
       '<p style="font-family:sans-serif;padding:24px">This link is not valid. Please use the link from your email.</p>');
   }
   t.property = c.PROPERTY_NAME;
+  t.version = APP_VERSION;
   t.categories = CATEGORIES;
   t.priorities = PRIORITIES;
   t.buildings = buildings_();
@@ -431,7 +434,8 @@ function emailHtml_(req, heading, note, link, buttonLabel) {
       'padding:10px 18px;border-radius:6px;text-decoration:none;display:inline-block">' + esc_(buttonLabel) +
       '</a></p>' : '') +
     '<p style="font-size:12px;color:#7b8794">All updates on this request are time-stamped and recorded in the tracker. ' +
-    'Please respond through the link above rather than by text, so both parties keep the same record.</p></div>';
+    'Please respond through the link above rather than by text, so both parties keep the same record.</p>' +
+    '<p style="font-size:11px;color:#9aa5b1">Work Request Tracker v' + APP_VERSION + '</p></div>';
 }
 
 /* ------------------------------------------------------------------ */

@@ -1,5 +1,7 @@
 # Setup and Testing Guide
 
+*For Work Request Tracker v1.2.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
+
 This guide takes you from nothing to a working, tested tracker. Each step lists **what to do**, **what you should see**, and **what to check** before moving on. Plan on 20 to 30 minutes, including testing.
 
 **You'll need:** a Google account (personal Gmail or Google Workspace), a computer with a web browser, and the files from this repository.
@@ -99,7 +101,7 @@ This guide takes you from nothing to a working, tested tracker. Each step lists 
 3. In the **Execution log**, copy the line that starts "Your tenant link."
 4. Open it in your browser and **bookmark it.**
 
-**You should see:** a page headed "*Your property* · Work Requests," with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
+**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.2.0`) at the bottom, with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
 
 **Check:** the tenant link works like a password. Don't share it. If you open the bare URL without `?k=...`, you should see "This link is not valid," which confirms the protection is working.
 
@@ -205,7 +207,7 @@ On the tenant page, open WR-0002 and click **Withdraw request**.
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| Page loads, but the dropdown is empty or buttons do nothing (browser console shows "el is not defined") | `Shared.html` is missing, misnamed or has the wrong contents | Confirm a file named exactly `Shared.html` starts with `<script>` and contains `function el(`; save and publish a new version |
+| Page loads, but the dropdown is empty or buttons do nothing (browser console shows "el is not defined") | `Shared.html` is missing, misnamed or has the wrong contents | Confirm a file named exactly `Shared.html` contains `<script>` and `function el(`; save and publish a new version |
 | Only "Sheet1" at the bottom of the Sheet | Setup didn't run or failed | Run **setup** again and read the Execution log |
 | "Missing tab..." error | Tabs renamed or deleted | Restore the original tab names, or run **setup** |
 | Permission screen says "**all** of your Google Drive files" | Old manifest | Replace `appsscript.json`, then run setup again |
@@ -214,7 +216,7 @@ On the tenant page, open WR-0002 and click **Withdraw request**.
 | "This link is not valid" on your own link | Missing or altered `?k=` key | Run **showLinks** and use that exact link |
 | No emails arriving | Email typo, or spam folder | Check Config, then spam; mark as "Not spam" |
 | Landlord can't open photos | Workspace restricts link sharing | Photos are still attached to the first email; or allow link sharing for the folder |
-| Page shows old behavior after a code change | Deployment not updated | **Deploy > Manage deployments > Edit > New version** |
+| Page shows old behavior after a code change (version at the bottom of the page is the old number) | Deployment not updated | **Deploy > Manage deployments > Edit > New version** |
 | "Exceeded maximum execution time" or email quota error | Google's daily limits | Wait 24 hours. Gmail allows about 100 emails a day, Workspace about 1,500 |
 
 ## Updating the code later

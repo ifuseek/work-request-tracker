@@ -1,6 +1,6 @@
 # Setup and Testing Guide
 
-*For Work Request Tracker v1.3.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
+*For Work Request Tracker v1.3.1. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
 
 This guide takes you from nothing to a working, tested tracker. Each step lists **what to do**, **what you should see**, and **what to check** before moving on. Plan on 20 to 30 minutes, including testing.
 
@@ -101,7 +101,7 @@ This guide takes you from nothing to a working, tested tracker. Each step lists 
 3. In the **Execution log**, copy the line that starts "Your tenant link."
 4. Open it in your browser and **bookmark it.**
 
-**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.3.0`) at the bottom, with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
+**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.3.1`) at the bottom, with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
 
 **Check:** the tenant link works like a password. Don't share it. If you open the bare URL without `?k=...`, you should see "This link is not valid," which confirms the protection is working.
 

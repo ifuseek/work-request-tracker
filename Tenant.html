@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Work Request Tracker v1.3.0 -->
+<!-- Work Request Tracker v1.3.1 -->
 <html>
 <head>
   <base target="_top">
@@ -226,20 +226,33 @@
       call('tenantDetail', [KEY, id]).then(renderDetail).catch(function (e) { d.textContent = e; });
     }
 
+    // Explains how the comment box applies to the other buttons currently shown.
+    function helpLine(r) {
+      var parts = [];
+      if (r.status === 'Scheduled') parts.push('confirming the time');
+      if (r.open) parts.push('withdrawing');
+      var text = parts.length ? 'Any comment you write is also included when ' + parts.join(' or ') + '.' : '';
+      if (r.status === 'Completed') text = 'To reopen, describe what still needs attention.';
+      return text ? el('div', { class: 'help', text: text }) : null;
+    }
+
     function renderDetail(r) {
       var d = document.getElementById('detail');
       clear(d);
-      var noteBox = el('textarea', { id: 'note', placeholder: 'Add a message (optional for some actions)' });
+      var noteBox = el('textarea', { id: 'note', placeholder: 'Write a follow-up or additional comment' });
       var errBox = el('div', { class: 'error' });
       function act(action, needsNote) {
         return function (ev) {
-          if (needsNote && !noteBox.value.trim()) { errBox.textContent = 'Please add a message first.'; return; }
+          if (needsNote && !noteBox.value.trim()) {
+            errBox.textContent = action === 'reopen' ? 'Please describe what still needs attention.' : 'Please write your comment first.';
+            return;
+          }
           busy(ev.target, true);
           call('tenantAction', [KEY, r.id, action, noteBox.value]).then(renderDetail)
             .catch(function (e) { errBox.textContent = e; busy(ev.target, false); });
         };
       }
-      var actions = [el('button', { onclick: act('comment', true), text: 'Send message' })];
+      var actions = [el('button', { onclick: act('comment', true), text: 'Send follow-up' })];
       if (r.status === 'Scheduled') actions.push(el('button', { class: 'secondary', onclick: act('confirm'), text: 'Confirm scheduled time' }));
       if (r.status === 'Completed') actions.push(el('button', { class: 'secondary', onclick: act('reopen', true), text: 'Reopen (not resolved)' }));
       if (r.open) actions.push(el('button', { class: 'danger', onclick: act('withdraw'), text: 'Withdraw request' }));
@@ -258,8 +271,8 @@
       ]));
       d.appendChild(el('div', { class: 'card' }, [el('h3', { style: 'margin-top:0;font-size:16px', text: 'History' }), timeline(r.log)]));
       d.appendChild(el('div', { class: 'card' }, [
-        el('h3', { style: 'margin-top:0;font-size:16px', text: 'Respond' }),
-        noteBox, el('div', { class: 'actions' }, actions), errBox
+        el('h3', { style: 'margin-top:0;font-size:16px', text: 'Follow-up / Additional comment' }),
+        noteBox, el('div', { class: 'actions' }, actions), helpLine(r), errBox
       ]));
     }
 

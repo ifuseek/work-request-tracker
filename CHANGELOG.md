@@ -2,6 +2,12 @@
 
 Each file carries its version inline (a comment at the top, and `APP_VERSION` in `Code.gs`). The version also shows at the bottom of every page, in the menu dialogs and in every email, so you can confirm which version is live. `appsscript.json` can't hold comments; it changes rarely and is noted below when it does.
 
+## 1.3.1 (2026-11-16)
+
+- Tenant request page: "Respond" renamed to **Follow-up / Additional comment**; the button now reads **Send follow-up**
+- Clearer comment box: the placeholder no longer says "optional for some actions"; a short note under the buttons explains when a comment is included (confirming, withdrawing) or required (reopening)
+- Changed file: `Tenant.html` (all files carry the new version number)
+
 ## 1.3.0 (2026-11-16)
 
 - Photo previews on the new request form: thumbnails appear as photos are chosen, each with a remove button

@@ -12,3 +12,4 @@ Observations from setting the tracker up as a first-time Apps Script user, and h
 | 6 | Requests need to say which building. | Addressed: required **Main house / Cottage / Grounds** choice, configurable on the Config tab (BUILDINGS) |
 | 7 | Running setup left the editor's execution log spinning indefinitely. The script was waiting for an OK click on a pop-up in the Sheet's tab. | Fixed in v1.2.1: messages use a non-blocking pop-up, so actions finish immediately |
 | 8 | No preview of photos after choosing them. | Added in v1.3.0: thumbnails with a remove button for each photo |
+| 9 | "Respond" was the wrong label for the tenant's comment area, and "optional for some actions" was confusing. | Fixed in v1.3.1: renamed to Follow-up / Additional comment, with a plain note on when a comment is included or required |

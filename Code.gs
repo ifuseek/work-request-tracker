@@ -1,5 +1,5 @@
 /**
- * Work Request Tracker v1.6.0
+ * Work Request Tracker v1.7.0
  * A simple, reusable repair-request workflow between a tenant and a landlord.
  *
  * - Data lives in the Google Sheet this script is bound to.
@@ -12,7 +12,7 @@
  * (Execute as: Me, Who has access: Anyone). See README.md.
  */
 
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 
 const SHEET_REQUESTS = 'Requests';
 const SHEET_LOG = 'Log';
@@ -68,9 +68,12 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('Work Requests')
     .addItem('1. Set up tracker', 'setup')
     .addItem('2. Show my links', 'showLinks')
+    .addItem('3. Invite the landlord', 'inviteLandlord')
     .addSeparator()
     .addItem('Turn on daily reminders', 'installReminderTrigger')
     .addItem('Send reminders now', 'sendReminders')
+    .addSeparator()
+    .addItem('Reset landlord links', 'resetLandlordLinks')
     .addToUi();
 }
 
@@ -155,6 +158,127 @@ function showLinks() {
       '</div>').setWidth(520).setHeight(360);
     SpreadsheetApp.getUi().showModalDialog(html, 'Your links (v' + APP_VERSION + ')');
   } catch (e) { /* run from editor: links are in the execution log */ }
+}
+
+/* ------------------------------------------------------------------ */
+/* Landlord invite                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Work Requests > 3. Invite the landlord. Opens a preview of the invite email with an
+ * optional personal note. Nothing is sent until you click Send (or send yourself a test copy).
+ */
+function inviteLandlord() {
+  const c = config_();
+  const missing = [];
+  if (!c.WEB_APP_URL) missing.push('WEB_APP_URL (deploy the web app first)');
+  if (!c.LANDLORD_EMAIL) missing.push('LANDLORD_EMAIL');
+  if (missing.length) { notify_('Before you invite', 'Please fill in on the Config tab:\n\n' + missing.join('\n')); return; }
+  const last = PropertiesService.getScriptProperties().getProperty('LANDLORD_INVITED_AT');
+  const preview = inviteHtml_('<div id="pnote" style="white-space:pre-wrap;margin:0 0 14px;padding:8px;border:1px dashed #cbd2d9;' +
+    'color:#7b8794">Your personal note appears here (optional).</div>');
+  const page =
+    '<div style="font-family:Arial,sans-serif;font-size:14px">' +
+    '<p style="margin:0 0 6px"><b>To:</b> ' + esc_(c.LANDLORD_NAME) + ' &lt;' + esc_(c.LANDLORD_EMAIL) + '&gt;<br>' +
+    '<b>Subject:</b> ' + esc_('[' + c.PROPERTY_NAME + '] ' + inviteSubject_()) + '</p>' +
+    (last ? '<p style="color:#8a5a00;margin:0 0 6px">Last invite sent ' + esc_(last) + '.</p>' : '') +
+    '<label for="note"><b>Personal note (optional)</b></label>' +
+    '<textarea id="note" maxlength="1500" style="width:100%;height:70px;margin:4px 0 8px;font:inherit" ' +
+    'oninput="var p=document.getElementById(\'pnote\');p.textContent=this.value||\'Your personal note appears here (optional).\';' +
+    'p.style.color=this.value?\'#1f2933\':\'#7b8794\';p.style.borderStyle=this.value?\'none\':\'dashed\'"></textarea>' +
+    '<p style="margin:0 0 10px"><button id="test" onclick="go(true)">Send me a test copy</button> ' +
+    '<button id="send" onclick="go(false)" style="background:#2f5d62;color:#fff;border:0;padding:6px 12px;border-radius:4px">' +
+    'Send invite to ' + esc_(c.LANDLORD_EMAIL) + '</button> <span id="msg"></span></p>' +
+    '<div style="border:1px solid #e1e5e2;border-radius:8px;padding:14px;max-height:330px;overflow:auto">' + preview + '</div></div>' +
+    '<script>function go(test){var b=document.querySelectorAll("button");for(var i=0;i<b.length;i++)b[i].disabled=true;' +
+    'var m=document.getElementById("msg");m.textContent="Sending…";' +
+    'google.script.run.withSuccessHandler(function(t){m.textContent=t;for(var i=0;i<b.length;i++)b[i].disabled=false;})' +
+    '.withFailureHandler(function(e){m.textContent=e.message||e;for(var i=0;i<b.length;i++)b[i].disabled=false;})' +
+    '.sendLandlordInvite(document.getElementById("note").value,test);}</script>';
+  try {
+    SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(page).setWidth(620).setHeight(600),
+      'Invite the landlord (v' + APP_VERSION + ')');
+  } catch (e) { Logger.log('Open the Sheet and use Work Requests > 3. Invite the landlord.'); }
+}
+
+/** Sends the invite to the landlord, or a test copy to you. Called from the invite dialog. */
+function sendLandlordInvite(note, testOnly) {
+  const c = config_();
+  if (!c.WEB_APP_URL || !c.LANDLORD_EMAIL) throw new Error('Fill in WEB_APP_URL and LANDLORD_EMAIL on the Config tab first.');
+  const text = clean_(note, 1500);
+  const html = inviteHtml_(text ? '<p style="white-space:pre-wrap;margin:0 0 14px">' + esc_(text) + '</p>' : '');
+  if (testOnly) {
+    const me = Session.getEffectiveUser().getEmail();
+    sendMail_(me, 'TEST COPY: ' + inviteSubject_(), html, null);
+    return 'Test copy sent to ' + me + '.';
+  }
+  sendMail_(c.LANDLORD_EMAIL, inviteSubject_(), html, null);
+  const at = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'MMM d, yyyy h:mm a');
+  PropertiesService.getScriptProperties().setProperty('LANDLORD_INVITED_AT', at);
+  log_('', 'Tenant', 'Invited landlord (' + c.LANDLORD_EMAIL + ')', text);
+  return 'Invite sent to ' + c.LANDLORD_EMAIL + '.';
+}
+
+function inviteSubject_() { return 'A simple way to handle repair requests'; }
+
+/** The invite email. noteHtml is already-safe HTML for the optional personal note. */
+function inviteHtml_(noteHtml) {
+  const c = config_();
+  const overview = c.WEB_APP_URL + '?lk=' + c.LANDLORD_KEY;
+  const li = function (t) { return '<li style="margin:0 0 6px">' + esc_(t) + '</li>'; };
+  const row = function (a, b) {
+    return '<tr><td style="padding:4px 8px 4px 0;color:#52606d">' + esc_(a) + '</td><td style="padding:4px 0">' + esc_(b) + '</td></tr>';
+  };
+  return '<div style="font-family:Arial,sans-serif;max-width:560px;color:#1f2933;font-size:14px;line-height:1.5">' +
+    '<h2 style="font-size:18px;margin:0 0 10px">A simple way to handle repair requests</h2>' +
+    '<p style="margin:0 0 12px">Hi ' + esc_(c.LANDLORD_NAME) + ',</p>' + noteHtml +
+    '<p style="margin:0 0 12px">To keep repair and maintenance requests clear and organized for both of us, I have set up a ' +
+    'simple tracker. Going forward, I will submit requests through it rather than by text.</p>' +
+    '<p style="margin:0 0 6px"><b>How it works</b></p><ul style="margin:0 0 12px;padding-left:20px">' +
+    li('When I submit a request, you will receive an email from "' + c.PROPERTY_NAME + ' Work Requests" with the details, any photos, and a private link.') +
+    li('The link opens that request directly. There is no account, password or app to set up.') +
+    li('From there you can acknowledge the request, schedule a visit, post an update, mark it complete, or decline with a short explanation. I am notified by email each time.') +
+    li('Visits that need entry into the home are scheduled at least 24 hours ahead, with the name and phone number of whoever will be on site. I confirm the time in the tracker, and either of us can request a change.') +
+    li('Every step is time-stamped, so we both have the same record.') + '</ul>' +
+    '<p style="margin:0 0 6px"><b>Requested response times</b></p><table style="border-collapse:collapse;margin:0 0 14px;font-size:14px;color:#1f2933">' +
+    row('Urgent (safety, no heat, water or power)', c.URGENT_RESPONSE) + row('Standard', c.STANDARD_RESPONSE) +
+    row('Routine', c.ROUTINE_RESPONSE) + '</table>' +
+    '<p style="margin:0 0 6px">You can see every request, upcoming visits and a calendar at any time here:</p>' +
+    '<p style="margin:0 0 18px"><a href="' + esc_(overview) + '" style="background:#2f5d62;color:#fff;padding:10px 18px;' +
+    'border-radius:6px;text-decoration:none;display:inline-block">View all requests</a></p>' +
+    '<div style="background:#f6f7f5;border:1px solid #e1e5e2;border-radius:8px;padding:12px 14px;margin:0 0 16px">' +
+    '<p style="margin:0 0 6px"><b>About privacy</b></p><ul style="margin:0;padding-left:20px">' +
+    li('The links in these emails work like keys. Anyone who has one can view that request and respond as you, so please do not forward these emails or share the links.') +
+    li('Requests are stored in a private Google Sheet in my account, and photos in a private Google Drive folder used only by the tracker. Photos open only for someone who has the link.') +
+    li('You do not need to sign in or share any information. The tracker only sends email; it cannot read your inbox or access anything of yours.') +
+    li('Nothing is shared with anyone else. If a link is ever shared by mistake, let me know and I will reset it right away.') +
+    '</ul></div>' +
+    '<p style="margin:0 0 4px">Thank you,</p><p style="margin:0 0 16px">' + esc_(c.TENANT_NAME) + '</p>' +
+    '<p style="font-size:11px;color:#9aa5b1">Work Request Tracker v' + APP_VERSION + '</p></div>';
+}
+
+/**
+ * Work Requests > Reset landlord links. Issues a new overview key and a new link for every
+ * request, so any old landlord link stops working. Then send a fresh invite.
+ */
+function resetLandlordLinks() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  let count = 0;
+  try {
+    const cfg = SpreadsheetApp.getActive().getSheetByName(SHEET_CONFIG);
+    const rows = cfg.getRange(2, 1, cfg.getLastRow() - 1, 1).getValues();
+    for (let i = 0; i < rows.length; i++) {
+      if (String(rows[i][0]).trim() === 'LANDLORD_KEY') cfg.getRange(i + 2, 2).setValue(newToken_());
+    }
+    allRequests_().forEach(function (r) { setFields_(r, { 'Token': newToken_() }); count++; });
+    log_('', 'Tenant', 'Reset landlord links', count + ' request links and the overview link were replaced.');
+  } finally {
+    lock.releaseLock();
+  }
+  notify_('Landlord links reset',
+    'Old landlord links no longer work. New links were issued for ' + count + ' request(s) and the overview.\n\n' +
+    'Next: Work Requests > 3. Invite the landlord, to send the new overview link.');
 }
 
 /** Optional: daily reminder to the landlord for requests not yet acknowledged. */

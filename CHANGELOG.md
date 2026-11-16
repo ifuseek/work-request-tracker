@@ -2,6 +2,12 @@
 
 Each file carries its version inline (a comment at the top, and `APP_VERSION` in `Code.gs`). The version also shows at the bottom of every page, in the menu dialogs and in every email, so you can confirm which version is live. `appsscript.json` can't hold comments; it changes rarely and is noted below when it does.
 
+## 1.7.0 (2026-11-16)
+
+- **Invite the landlord** (Work Requests > 3. Invite the landlord): previews an introduction email explaining how the tracker works, the requested response times, and a **View all requests** link, with an **About privacy** section. Add an optional personal note, send yourself a test copy, then send. Nothing is sent until you click Send. The invite is recorded in the Log
+- **Reset landlord links** (Work Requests menu): issues a new overview key and a new link for every request, so any forwarded or exposed landlord link stops working. Then send a fresh invite
+- Changed file: `Code.gs` (all files carry the new version number). `appsscript.json` is unchanged
+
 ## 1.6.0 (2026-11-17)
 
 - **Tenant confirmation:** a scheduled visit shows **Confirm this time** and **Request a change** (a reason is required). A change request sets the status to **Change requested** and clears any confirmation

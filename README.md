@@ -83,6 +83,7 @@ stateDiagram-v2
 - Once scheduled, the visit is locked in; either side can request a change with a reason, and the landlord can propose a new time
 - An overview of all requests with what needs a response, upcoming visits and a calendar, linked from every request page
 - Photos attached to the first email
+- A built-in invite email introduces the tracker, with response times, the overview link and a privacy note. Landlord links can be reset in one click if one is ever forwarded
 
 **Process and record**
 - Every action is time-stamped in a Log tab, which becomes the shared record

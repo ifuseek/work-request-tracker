@@ -21,3 +21,4 @@ Observations from setting the tracker up as a first-time Apps Script user, and h
 | 15 | A summary page should show upcoming repairs more clearly. | Added in v1.6.0: summary tiles, Needs your attention, Upcoming visits with date boxes, and what is waiting |
 | 16 | Both pages need a way to see all requests, and a calendar of upcoming repairs. | Added in v1.6.0: **All requests** tab (tenant), **← All requests** link and redesigned overview (landlord), and a month calendar highlighting visit days on both |
 | 17 | Visits should be easy to add to a personal calendar. | Added in v1.6.0: **Add to Google Calendar** and **Download .ics** (Apple, Outlook) on every scheduled visit |
+| 18 | Sending the landlord an introduction should be built in, with a clear note about privacy. | Added in v1.7.0: **3. Invite the landlord** with a preview, test copy and privacy section, plus **Reset landlord links** if a link is ever exposed |

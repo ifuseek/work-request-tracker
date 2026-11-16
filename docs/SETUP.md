@@ -1,6 +1,6 @@
 # Setup and Testing Guide
 
-*For Work Request Tracker v1.6.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
+*For Work Request Tracker v1.7.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
 
 This guide takes you from nothing to a working, tested tracker. Each step lists **what to do**, **what you should see**, and **what to check** before moving on. Plan on 20 to 30 minutes, including testing.
 
@@ -101,7 +101,7 @@ This guide takes you from nothing to a working, tested tracker. Each step lists 
 3. In the **Execution log**, copy the line that starts "Your tenant link."
 4. Open it in your browser and **bookmark it.**
 
-**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.6.0`) at the bottom, with **Summary** and **All requests** tabs, a **+ New request** button, summary tiles (Open requests, Upcoming visits, Need your confirmation) and a calendar.
+**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.7.0`) at the bottom, with **Summary** and **All requests** tabs, a **+ New request** button, summary tiles (Open requests, Upcoming visits, Need your confirmation) and a calendar.
 
 **Check:** the tenant link works like a password. Don't share it. If you open the bare URL without `?k=...`, you should see "This link is not valid," which confirms the protection is working.
 
@@ -253,13 +253,27 @@ On the tenant page, open WR-0002 and click **Withdraw request**.
 
 ---
 
+### Test 8: Invite and reset (landlord links)
+1. Choose **Work Requests > 3. Invite the landlord**. Add a short note and click **Send me a test copy**.
+
+**Validate:**
+- [ ] The preview shows your note, how it works, response times, **View all requests** and **About privacy**
+- [ ] The test copy arrives at your own address with "TEST COPY" in the subject, and its **View all requests** button opens the overview
+
+2. Choose **Work Requests > Reset landlord links**.
+
+**Validate:**
+- [ ] The old overview link and old per-request landlord links now show "Link not valid."
+- [ ] **2. Show my links** shows a new overview link; your tenant link is unchanged
+
 ## Part 3: Go live
 
 1. **Clear the test data:** in the **Requests** and **Log** tabs, delete every row **except the header row** (row 1). In Drive, delete the test photos from the photo folder.
-2. **Set the real landlord:** on the Config tab, change **LANDLORD_EMAIL** to the landlord's address.
-3. **Optional overview link:** run **showLinks** again. The "Landlord overview link" lists all requests; send it only if the landlord wants it.
-4. **Introduce it to the landlord** before the first request arrives. Explain that requests will come by email and they can respond with one click, with no account needed.
-5. **Submit your first real request.**
+2. **Check the name:** on the Config tab, set **PROPERTY_NAME** to how the tracker should appear everywhere: page headers, email subjects ("[Name] ...") and the sender name ("Name Work Requests"). It doesn't need to be the street address.
+3. **Set the real landlord:** change **LANDLORD_NAME** and **LANDLORD_EMAIL** to the landlord's details.
+4. **Since test links went to your own address, reset them:** **Work Requests > Reset landlord links**.
+5. **Invite the landlord** before the first request arrives: **Work Requests > 3. Invite the landlord**. Send yourself a test copy first, then send it.
+6. **Submit your first real request.**
 
 ---
 

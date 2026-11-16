@@ -13,3 +13,5 @@ Observations from setting the tracker up as a first-time Apps Script user, and h
 | 7 | Running setup left the editor's execution log spinning indefinitely. The script was waiting for an OK click on a pop-up in the Sheet's tab. | Fixed in v1.2.1: messages use a non-blocking pop-up, so actions finish immediately |
 | 8 | No preview of photos after choosing them. | Added in v1.3.0: thumbnails with a remove button for each photo |
 | 9 | "Respond" was the wrong label for the tenant's comment area, and "optional for some actions" was confusing. | Fixed in v1.3.1: renamed to Follow-up / Additional comment, with a plain note on when a comment is included or required |
+| 10 | Scheduling was a free-text box. It needed a date picker, a separate timeframe, and the day of the week shown with the date. | Added in v1.4.0: date picker, Morning / Afternoon / Evening / specific time, and a preview such as "Saturday, November 21, 2026" |
+| 11 | "Decline (reason required)" read as harsh. | Changed in v1.4.0: the button reads Decline and asks for a few details so the tenant understands |

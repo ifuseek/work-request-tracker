@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Work Request Tracker v1.3.1 -->
+<!-- Work Request Tracker v1.4.0 -->
 <html>
 <head>
   <base target="_top">
@@ -68,34 +68,105 @@
       }
 
       var note = el('textarea', { placeholder: 'Message to the tenant' });
-      var when = el('input', { type: 'text', placeholder: 'e.g., Tue Nov 24, 10 AM to 12 PM' });
       var err = el('div', { class: 'error' });
+      var sched = scheduler(r);
       function act(action, opts) {
         return function (ev) {
           err.textContent = '';
           if (opts && opts.note && !note.value.trim()) { err.textContent = opts.note; return; }
-          if (opts && opts.when && !when.value.trim()) { err.textContent = 'Please enter a date and time window.'; return; }
+          var when = '';
+          if (action === 'schedule') {
+            var check = sched.value();
+            if (check.error) { err.textContent = check.error; return; }
+            when = check.text;
+          }
           busy(ev.target, true);
-          call('landlordAction', [ID, TOKEN, action, note.value, when.value]).then(renderRequest)
+          call('landlordAction', [ID, TOKEN, action, note.value, when]).then(renderRequest)
             .catch(function (e) { err.textContent = e; busy(ev.target, false); });
         };
       }
       app.appendChild(el('div', { class: 'card' }, [
         el('h3', { style: 'margin-top:0;font-size:16px', text: 'Respond' }),
         el('label', { text: 'Message' }), note,
-        el('label', { text: 'Date and time window (for scheduling)' }), when,
-        el('div', { class: 'help', text: r.area === 'Exterior'
-          ? 'Exterior work: no entry needed. Share the date so the tenant knows when to expect someone.'
-          : 'Interior work: propose a time at least 24 hours ahead. The tenant confirms it here.' }),
         el('div', { class: 'actions' }, [
           r.status === 'Submitted' ? el('button', { onclick: act('acknowledge'), text: 'Acknowledge' }) : null,
-          el('button', { class: 'secondary', onclick: act('schedule', { when: true }), text: 'Schedule' }),
           el('button', { class: 'secondary', onclick: act('update', { note: 'Please enter an update.' }), text: 'Post update' }),
           el('button', { class: 'secondary', onclick: act('complete'), text: 'Mark complete' }),
-          el('button', { class: 'danger', onclick: act('decline', { note: 'Please give a reason for declining.' }), text: 'Decline (reason required)' })
+          el('button', { class: 'danger', onclick: act('decline', { note: 'Please add a few details in the message box so the tenant understands.' }), text: 'Decline' })
         ]),
+        el('div', { class: 'help', text: 'If you decline, please add a few details in the message so the tenant understands.' }),
         err
       ]));
+      app.appendChild(el('div', { class: 'card' }, [
+        el('h3', { style: 'margin-top:0;font-size:16px', text: 'Schedule a visit' }),
+        el('div', { class: 'help', style: 'margin-top:0', text: r.area === 'Exterior'
+          ? 'Exterior work: no entry needed. Share the date so the tenant knows when to expect someone.'
+          : 'Interior work: choose a time at least 24 hours from now. The tenant confirms it here.' }),
+        sched.node,
+        el('div', { class: 'actions' }, [el('button', { onclick: act('schedule'), text: 'Schedule visit' })]),
+        el('div', { class: 'help', text: 'Any message above is included with the scheduled time.' })
+      ]));
+    }
+
+    // Date picker plus time window. Shows the full day and date, e.g. "Saturday, November 21, 2026".
+    var WINDOWS = [
+      { label: 'Morning', start: '08:00', end: '12:00' },
+      { label: 'Afternoon', start: '12:00', end: '16:00' },
+      { label: 'Evening', start: '16:00', end: '19:00' },
+      { label: 'Specific time', start: '', end: '' }
+    ];
+    function scheduler(r) {
+      var today = new Date();
+      var iso = function (d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+      var date = el('input', { type: 'date', min: iso(today), 'aria-label': 'Visit date' });
+      var startT = el('input', { type: 'time', value: '09:00', 'aria-label': 'Start time' });
+      var endT = el('input', { type: 'time', value: '11:00', 'aria-label': 'End time' });
+      var custom = el('div', { class: 'time-row hidden' }, [el('span', { text: 'From' }), startT, el('span', { text: 'to' }), endT]);
+      var preview = el('div', { class: 'notice', style: 'margin-top:12px' });
+      var chosen = 0;
+      var chips = el('div', { class: 'choices' });
+      WINDOWS.forEach(function (w, i) {
+        var input = el('input', { type: 'radio', name: 'window', value: String(i) });
+        if (i === 0) input.checked = true;
+        input.addEventListener('change', function () { chosen = i; custom.classList.toggle('hidden', i !== 3); update(); });
+        var hint = w.start ? ' (' + fmtTime(w.start) + ' to ' + fmtTime(w.end) + ')' : '';
+        chips.appendChild(el('label', { class: 'choice' }, [input, ' ' + w.label + hint]));
+      });
+      [date, startT, endT].forEach(function (x) { x.addEventListener('input', update); });
+
+      function fmtTime(hm) {
+        var p = hm.split(':'), h = +p[0], m = p[1];
+        return ((h % 12) || 12) + ':' + m + ' ' + (h < 12 ? 'AM' : 'PM');
+      }
+      function times() {
+        var w = WINDOWS[chosen];
+        return chosen === 3 ? { start: startT.value, end: endT.value } : { start: w.start, end: w.end };
+      }
+      function value() {
+        if (!date.value) return { error: 'Please choose a date.' };
+        var t = times();
+        if (!t.start || !t.end) return { error: 'Please choose a start and end time.' };
+        if (t.end <= t.start) return { error: 'The end time must be after the start time.' };
+        var p = date.value.split('-');
+        var day = new Date(+p[0], +p[1] - 1, +p[2]);
+        var startAt = new Date(+p[0], +p[1] - 1, +p[2], +t.start.split(':')[0], +t.start.split(':')[1]);
+        if (startAt < new Date()) return { error: 'Please choose a time that has not already passed.' };
+        if (r.area !== 'Exterior' && startAt - new Date() < 24 * 3600 * 1000) {
+          return { error: 'Interior visits need at least 24 hours\' notice. Please choose a later date or time.' };
+        }
+        var dayText = day.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        var label = chosen === 3 ? '' : WINDOWS[chosen].label + ', ';
+        return { text: dayText + ', ' + label + fmtTime(t.start) + ' to ' + fmtTime(t.end) };
+      }
+      function update() {
+        var v = value();
+        preview.textContent = v.error ? (date.value ? v.error : 'Choose a date to see the full appointment.') : 'Will be sent as: ' + v.text;
+      }
+      update();
+      return {
+        node: el('div', {}, [el('label', { text: 'Date' }), date, el('label', { text: 'Time window' }), chips, custom, preview]),
+        value: value
+      };
     }
 
     if (MODE === 'list') loadList(); else loadRequest();

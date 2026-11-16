@@ -1,5 +1,5 @@
 /**
- * Work Request Tracker v1.3.1
+ * Work Request Tracker v1.4.0
  * A simple, reusable repair-request workflow between a tenant and a landlord.
  *
  * - Data lives in the Google Sheet this script is bound to.
@@ -12,7 +12,7 @@
  * (Execute as: Me, Who has access: Anyone). See README.md.
  */
 
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.4.0';
 
 const SHEET_REQUESTS = 'Requests';
 const SHEET_LOG = 'Log';
@@ -345,7 +345,7 @@ function landlordAction(id, token, action, note, scheduledFor) {
       touch_(req, STATUS.COMPLETED);
       subject = 'Marked complete'; body = note || 'The work has been completed.';
     } else if (action === 'decline') {
-      if (!note) throw new Error('Please give a reason for declining.');
+      if (!note) throw new Error('Please add a few details in the message so the tenant understands.');
       log_(id, 'Landlord', 'Declined', note);
       touch_(req, STATUS.DECLINED);
       subject = 'Declined'; body = note;

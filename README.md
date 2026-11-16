@@ -2,7 +2,7 @@
 
 **A no-login repair request workflow for tenants and landlords, built on Google Apps Script.**
 
-The tenant submits requests from a private page. The landlord gets an email with a private link and responds in one click: acknowledge, schedule, update, complete, or decline with a reason. Every step is time-stamped in one shared record. It's hosted by Google, free to run, and can be reused for any property, client or vendor.
+The tenant submits requests from a private page. The landlord gets an email with a private link and responds in one click: acknowledge, schedule, update, complete, or decline with a short explanation. Every step is time-stamped in one shared record. It's hosted by Google, free to run, and can be reused for any property, client or vendor.
 
 <p>
   <img src="docs/screenshots/tenant-requests.png" width="240" alt="Tenant request list">
@@ -26,7 +26,7 @@ The goal was a **calm, predictable process**: one place to ask, one place to ans
 | --- | --- |
 | The landlord would not create an account or learn new software | Each request email carries a private per-request link. One click opens a page with five clearly labeled buttons. No login. |
 | Communication needed boundaries | Every exchange happens on the request itself, by design. Emails ask both parties to respond through the tracker, not by text. |
-| A refusal should still be accountable | **Decline** requires a written reason. Every action is time-stamped and visible to both sides. |
+| A refusal should still be accountable | **Decline** asks for a short written explanation. Every action is time-stamped and visible to both sides. |
 | Entry into the home needed coordination | The landlord proposes a time window, at least 24 hours ahead for interior work, and the tenant confirms it in the tracker. |
 | Must stay online without the tenant's computer, at no cost | Google Apps Script web app, hosted by Google, on a free account. |
 | Private data must stay private | Data lives in the owner's Google Sheet. The code holds no personal data, so it can be shared publicly. |
@@ -55,8 +55,8 @@ stateDiagram-v2
     Acknowledged --> InProgress: update
     Scheduled --> Completed: landlord
     InProgress --> Completed: landlord
-    Submitted --> Declined: reason required
-    Acknowledged --> Declined: reason required
+    Submitted --> Declined: with explanation
+    Acknowledged --> Declined: with explanation
     Submitted --> Withdrawn: tenant
     Completed --> Submitted: tenant reopens
     Completed --> [*]
@@ -74,7 +74,8 @@ stateDiagram-v2
 
 **Landlord**
 - No account, no password: each email links to that one request
-- Acknowledge, schedule a time window, post an update, mark complete, or decline with a required reason
+- Acknowledge, schedule a visit with a date picker and time window (shown with the full day, for example "Saturday, November 21"), post an update, mark complete, or decline with a short explanation
+- Interior visits must be scheduled at least 24 hours ahead
 - Optional overview link listing all requests
 - Photos attached to the first email
 

@@ -1,6 +1,6 @@
 # Setup and Testing Guide
 
-*For Work Request Tracker v1.3.1. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
+*For Work Request Tracker v1.4.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
 
 This guide takes you from nothing to a working, tested tracker. Each step lists **what to do**, **what you should see**, and **what to check** before moving on. Plan on 20 to 30 minutes, including testing.
 
@@ -101,7 +101,7 @@ This guide takes you from nothing to a working, tested tracker. Each step lists 
 3. In the **Execution log**, copy the line that starts "Your tenant link."
 4. Open it in your browser and **bookmark it.**
 
-**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.3.1`) at the bottom, with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
+**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.4.0`) at the bottom, with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
 
 **Check:** the tenant link works like a password. Don't share it. If you open the bare URL without `?k=...`, you should see "This link is not valid," which confirms the protection is working.
 
@@ -143,18 +143,28 @@ Run these tests with **LANDLORD_EMAIL set to your own email**, so you receive bo
 3. Click **Decline** with the message box empty.
 
 **Validate:**
-- [ ] It's blocked with "Please give a reason for declining." Nothing changes
+- [ ] It's blocked with "Please add a few details in the message box so the tenant understands." Nothing changes
 
-4. Enter a time in **Date and time window**, for example `Tue 10 AM to 12 PM`, and click **Schedule**.
+4. In **Schedule a visit**, pick a date **less than 24 hours away** with **Specific time**, and click **Schedule visit**.
 
 **Validate:**
-- [ ] The status changes to **Scheduled**, and the time appears in a highlighted box
-- [ ] You receive a "Scheduled for ..." email
+- [ ] For an Interior request, it's blocked: "Interior visits need at least 24 hours' notice." (Exterior requests allow it)
+
+5. Pick a date a few days out, choose **Afternoon**, and check the preview.
+
+**Validate:**
+- [ ] The preview shows the full day and date, for example "Will be sent as: Saturday, November 21, 2026, Afternoon, 12:00 PM to 4:00 PM"
+
+6. Click **Schedule visit**.
+
+**Validate:**
+- [ ] The status changes to **Scheduled**, and the same text appears in a highlighted box
+- [ ] You receive a "Scheduled for Saturday, November 21, ..." email
 
 ### Test 3: Confirm and message (tenant)
 1. Open your tenant link and click **WR-0001**.
 2. Click **Confirm scheduled time**.
-3. Type a message and click **Send message**.
+3. Type a comment under **Follow-up / Additional comment** and click **Send follow-up**.
 
 **Validate:**
 - [ ] History shows "Confirmed scheduled time" and your message, with time stamps

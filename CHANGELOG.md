@@ -2,6 +2,15 @@
 
 Each file carries its version inline (a comment at the top, and `APP_VERSION` in `Code.gs`). The version also shows at the bottom of every page, in the menu dialogs and in every email, so you can confirm which version is live. `appsscript.json` can't hold comments; it changes rarely and is noted below when it does.
 
+## 1.4.0 (2026-11-16)
+
+- Landlord scheduling: a date picker and a separate time window (Morning, Afternoon, Evening or a specific time)
+- The appointment is sent with the full day and date, for example "Saturday, November 21, 2026, Afternoon, 12:00 PM to 4:00 PM", with a live preview before sending
+- Interior visits can't be scheduled less than 24 hours ahead; past times are blocked
+- Scheduling now has its own "Schedule a visit" section
+- Gentler decline wording: the button reads **Decline** and asks for a few details so the tenant understands
+- Changed files: `Landlord.html`, `Styles.html`, `Code.gs` (all files carry the new version number)
+
 ## 1.3.1 (2026-11-16)
 
 - Tenant request page: "Respond" renamed to **Follow-up / Additional comment**; the button now reads **Send follow-up**

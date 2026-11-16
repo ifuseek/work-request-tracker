@@ -1,4 +1,4 @@
-# Push only the app files to Apps Script (Work Request Tracker v1.4.0)
+# Push only the app files to Apps Script (Work Request Tracker v1.5.0)
 **/**
 !appsscript.json
 !Code.gs

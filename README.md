@@ -27,7 +27,7 @@ The goal was a **calm, predictable process**: one place to ask, one place to ans
 | The landlord would not create an account or learn new software | Each request email carries a private per-request link. One click opens a page with five clearly labeled buttons. No login. |
 | Communication needed boundaries | Every exchange happens on the request itself, by design. Emails ask both parties to respond through the tracker, not by text. |
 | A refusal should still be accountable | **Decline** asks for a short written explanation. Every action is time-stamped and visible to both sides. |
-| Entry into the home needed coordination | The landlord proposes a time window, at least 24 hours ahead for interior work, and the tenant confirms it in the tracker. |
+| Entry into the home needed coordination | The landlord picks a date and time window, at least 24 hours ahead for interior work, and names who will be on site with contact details. The tenant confirms it in the tracker. |
 | Must stay online without the tenant's computer, at no cost | Google Apps Script web app, hosted by Google, on a free account. |
 | Private data must stay private | Data lives in the owner's Google Sheet. The code holds no personal data, so it can be shared publicly. |
 | Should work for other properties and vendors | All names, emails and response times live on a Config tab. Copy the Sheet to start a new tracker. |
@@ -76,6 +76,7 @@ stateDiagram-v2
 - No account, no password: each email links to that one request
 - Acknowledge, schedule a visit with a date picker and time window (shown with the full day, for example "Saturday, November 21"), post an update, mark complete, or decline with a short explanation
 - Interior visits must be scheduled at least 24 hours ahead
+- Scheduling records who will be on site; contractors entering the home must give company, contact person and phone
 - Optional overview link listing all requests
 - Photos attached to the first email
 
@@ -86,6 +87,7 @@ stateDiagram-v2
 
 <p>
   <img src="docs/screenshots/tenant-new-request.png" width="240" alt="New request form">
+  <img src="docs/screenshots/landlord-schedule.png" width="240" alt="Scheduling a visit with contractor details">
   <img src="docs/screenshots/landlord-overview.png" width="240" alt="Landlord overview">
 </p>
 

@@ -2,6 +2,15 @@
 
 Each file carries its version inline (a comment at the top, and `APP_VERSION` in `Code.gs`). The version also shows at the bottom of every page, in the menu dialogs and in every email, so you can confirm which version is live. `appsscript.json` can't hold comments; it changes rarely and is noted below when it does.
 
+## 1.5.0 (2026-11-16)
+
+- Scheduling asks **Who will be on site?**: Landlord, Contractor, or Someone else
+- Contractors and others must give contact details. For interior work (entering the home), company (for contractors), contact person and phone are required; email is optional
+- Optional **Additional details** for the visit: work to be done, vehicle, access needs
+- Visit details are saved in the history and included in the tenant's email
+- Rules are enforced both on the page and on the server
+- Changed files: `Landlord.html`, `Styles.html`, `Code.gs` (all files carry the new version number)
+
 ## 1.4.0 (2026-11-16)
 
 - Landlord scheduling: a date picker and a separate time window (Morning, Afternoon, Evening or a specific time)

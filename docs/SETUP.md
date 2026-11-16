@@ -1,6 +1,6 @@
 # Setup and Testing Guide
 
-*For Work Request Tracker v1.4.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
+*For Work Request Tracker v1.5.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
 
 This guide takes you from nothing to a working, tested tracker. Each step lists **what to do**, **what you should see**, and **what to check** before moving on. Plan on 20 to 30 minutes, including testing.
 
@@ -101,7 +101,7 @@ This guide takes you from nothing to a working, tested tracker. Each step lists 
 3. In the **Execution log**, copy the line that starts "Your tenant link."
 4. Open it in your browser and **bookmark it.**
 
-**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.4.0`) at the bottom, with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
+**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.5.0`) at the bottom, with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
 
 **Check:** the tenant link works like a password. Don't share it. If you open the bare URL without `?k=...`, you should see "This link is not valid," which confirms the protection is working.
 
@@ -155,11 +155,17 @@ Run these tests with **LANDLORD_EMAIL set to your own email**, so you receive bo
 **Validate:**
 - [ ] The preview shows the full day and date, for example "Will be sent as: Saturday, November 21, 2026, Afternoon, 12:00 PM to 4:00 PM"
 
-6. Click **Schedule visit**.
+6. Under **Who will be on site?**, choose **Contractor**. Fill in the company and contact person but leave the phone blank, and click **Schedule visit**.
+
+**Validate:**
+- [ ] For an Interior request, it's blocked: "For work inside the home, please add the phone."
+
+7. Add a phone number, optionally some **Additional details**, and click **Schedule visit**.
 
 **Validate:**
 - [ ] The status changes to **Scheduled**, and the same text appears in a highlighted box
-- [ ] You receive a "Scheduled for Saturday, November 21, ..." email
+- [ ] You receive a "Scheduled for Saturday, November 21, ..." email that lists the contractor's company, contact and phone
+- [ ] History shows the same visit details
 
 ### Test 3: Confirm and message (tenant)
 1. Open your tenant link and click **WR-0001**.

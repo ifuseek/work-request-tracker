@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Work Request Tracker v1.4.0 -->
+<!-- Work Request Tracker v1.5.0 -->
 <html>
 <head>
   <base target="_top">
@@ -70,19 +70,24 @@
       var note = el('textarea', { placeholder: 'Message to the tenant' });
       var err = el('div', { class: 'error' });
       var sched = scheduler(r);
+      var visit = visitorForm(r);
+      var schedErr = el('div', { class: 'error' });
       function act(action, opts) {
         return function (ev) {
-          err.textContent = '';
-          if (opts && opts.note && !note.value.trim()) { err.textContent = opts.note; return; }
-          var when = '';
+          var box = action === 'schedule' ? schedErr : err;
+          err.textContent = ''; schedErr.textContent = '';
+          if (opts && opts.note && !note.value.trim()) { box.textContent = opts.note; return; }
+          var when = '', visitor = null;
           if (action === 'schedule') {
             var check = sched.value();
-            if (check.error) { err.textContent = check.error; return; }
+            if (check.error) { box.textContent = check.error; return; }
+            visitor = visit.value();
+            if (visitor.error) { box.textContent = visitor.error; return; }
             when = check.text;
           }
           busy(ev.target, true);
-          call('landlordAction', [ID, TOKEN, action, note.value, when]).then(renderRequest)
-            .catch(function (e) { err.textContent = e; busy(ev.target, false); });
+          call('landlordAction', [ID, TOKEN, action, note.value, when, visitor]).then(renderRequest)
+            .catch(function (e) { box.textContent = e; busy(ev.target, false); });
         };
       }
       app.appendChild(el('div', { class: 'card' }, [
@@ -103,9 +108,65 @@
           ? 'Exterior work: no entry needed. Share the date so the tenant knows when to expect someone.'
           : 'Interior work: choose a time at least 24 hours from now. The tenant confirms it here.' }),
         sched.node,
+        visit.node,
         el('div', { class: 'actions' }, [el('button', { onclick: act('schedule'), text: 'Schedule visit' })]),
-        el('div', { class: 'help', text: 'Any message above is included with the scheduled time.' })
+        el('div', { class: 'help', text: 'Any message above is included with the scheduled time.' }),
+        schedErr
       ]));
+    }
+
+    // Who will be on site. Anyone other than the landlord needs contact details;
+    // for interior work (entering the home), full contact details are required.
+    function visitorForm(r) {
+      var interior = r.area !== 'Exterior';
+      var whoOpts = ['Landlord (me)', 'Contractor', 'Someone else'];
+      var who = 0;
+      var company = el('input', { type: 'text', maxlength: '120', placeholder: 'Company name' });
+      var name = el('input', { type: 'text', maxlength: '120', placeholder: 'Contact name' });
+      var phone = el('input', { type: 'tel', maxlength: '40', placeholder: 'Phone' });
+      var email = el('input', { type: 'email', maxlength: '120', placeholder: 'Email (optional)' });
+      var extra = el('textarea', { maxlength: '1000', style: 'min-height:64px',
+        placeholder: 'Additional details: what work will be done, vehicle, access needs, anything to expect' });
+      var companyLabel = el('label', { text: 'Company' });
+      var reqNote = el('div', { class: 'help' });
+      var contact = el('div', { class: 'hidden' }, [companyLabel, company, el('label', { text: 'Contact person' }), name,
+        el('label', { text: 'Phone' }), phone, el('label', { text: 'Email' }), email, reqNote]);
+      var chips = el('div', { class: 'choices' });
+      whoOpts.forEach(function (label, i) {
+        var input = el('input', { type: 'radio', name: 'who', value: String(i) });
+        if (i === 0) input.checked = true;
+        input.addEventListener('change', function () {
+          who = i;
+          contact.classList.toggle('hidden', i === 0);
+          var isCo = i === 1;
+          companyLabel.classList.toggle('hidden', !isCo); company.classList.toggle('hidden', !isCo);
+          reqNote.textContent = interior
+            ? 'Required for interior work: ' + (isCo ? 'company, ' : '') + 'contact person and phone, so the tenant knows who is entering the home.'
+            : 'Exterior work: contact details help the tenant know who to expect.';
+        });
+        chips.appendChild(el('label', { class: 'choice' }, [input, ' ' + label]));
+      });
+      function value() {
+        var v = { who: whoOpts[who], company: '', name: '', phone: '', email: '', details: extra.value.trim() };
+        if (who === 0) return v;
+        v.company = who === 1 ? company.value.trim() : '';
+        v.name = name.value.trim(); v.phone = phone.value.trim(); v.email = email.value.trim();
+        if (interior) {
+          var missing = [];
+          if (who === 1 && !v.company) missing.push('company');
+          if (!v.name) missing.push('contact person');
+          if (!v.phone) missing.push('phone');
+          if (missing.length) return { error: 'For work inside the home, please add the ' + missing.join(', ') + '.' };
+        } else if (!v.name && !v.company && !v.phone) {
+          return { error: 'Please add at least a name or company and phone, so the tenant knows who to expect.' };
+        }
+        return v;
+      }
+      return {
+        node: el('div', {}, [el('label', { text: 'Who will be on site?' }), chips, contact,
+          el('label', { text: 'Additional details (optional)' }), extra]),
+        value: value
+      };
     }
 
     // Date picker plus time window. Shows the full day and date, e.g. "Saturday, November 21, 2026".

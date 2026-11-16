@@ -1,5 +1,5 @@
 /**
- * Work Request Tracker v1.4.0
+ * Work Request Tracker v1.5.0
  * A simple, reusable repair-request workflow between a tenant and a landlord.
  *
  * - Data lives in the Google Sheet this script is bound to.
@@ -12,7 +12,7 @@
  * (Execute as: Me, Who has access: Anyone). See README.md.
  */
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 
 const SHEET_REQUESTS = 'Requests';
 const SHEET_LOG = 'Log';
@@ -316,7 +316,7 @@ function landlordList(lkey) {
 }
 
 /** action: acknowledge | schedule | update | complete | decline */
-function landlordAction(id, token, action, note, scheduledFor) {
+function landlordAction(id, token, action, note, scheduledFor, visitor) {
   requireLandlordToken_(id, token);
   const req = mustFind_(id);
   note = clean_(note, 2000);
@@ -330,11 +330,13 @@ function landlordAction(id, token, action, note, scheduledFor) {
       touch_(req, req.status === STATUS.SUBMITTED ? STATUS.ACKNOWLEDGED : null);
       subject = 'Acknowledged'; body = note || 'Your request has been received.';
     } else if (action === 'schedule') {
-      const when = clean_(scheduledFor, 100);
-      if (!when) throw new Error('Please enter a date and time window.');
-      log_(id, 'Landlord', 'Scheduled: ' + when, note);
+      const when = clean_(scheduledFor, 120);
+      if (!when) throw new Error('Please choose a date and time.');
+      const visit = visitorBlock_(visitor, req.area);
+      const full = [note, visit].filter(String).join('\n\n');
+      log_(id, 'Landlord', 'Scheduled: ' + when, full);
       touch_(req, STATUS.SCHEDULED, when);
-      subject = 'Scheduled for ' + when; body = note || 'Work has been scheduled.';
+      subject = 'Scheduled for ' + when; body = full || 'Work has been scheduled.';
     } else if (action === 'update') {
       if (!note) throw new Error('Please enter an update.');
       log_(id, 'Landlord', 'Update', note);
@@ -357,6 +359,35 @@ function landlordAction(id, token, action, note, scheduledFor) {
   }
   notifyTenant_(mustFind_(id), subject, body);
   return detail_(id);
+}
+
+/**
+ * Formats who will be on site. Anyone other than the landlord needs contact
+ * details; for interior work, company (contractors), contact and phone are required.
+ */
+function visitorBlock_(v, area) {
+  v = v || {};
+  const who = clean_(v.who, 40) || 'Landlord (me)';
+  const company = clean_(v.company, 120), name = clean_(v.name, 120);
+  const phone = clean_(v.phone, 40), email = clean_(v.email, 120), details = clean_(v.details, 1000);
+  const isLandlord = who.indexOf('Landlord') === 0;
+  if (!isLandlord) {
+    if (area !== 'Exterior') {
+      if ((who === 'Contractor' && !company) || !name || !phone) {
+        throw new Error('For work inside the home, please add the ' + (who === 'Contractor' ? 'company, ' : '') +
+          'contact person and phone.');
+      }
+    } else if (!name && !company && !phone) {
+      throw new Error('Please add at least a name or company and phone, so the tenant knows who to expect.');
+    }
+  }
+  const lines = ['On site: ' + (isLandlord ? config_().LANDLORD_NAME : who)];
+  if (company) lines.push('Company: ' + company);
+  if (name) lines.push('Contact: ' + name);
+  if (phone) lines.push('Phone: ' + phone);
+  if (email) lines.push('Email: ' + email);
+  if (details) lines.push('Details: ' + details);
+  return lines.join('\n');
 }
 
 /* ------------------------------------------------------------------ */

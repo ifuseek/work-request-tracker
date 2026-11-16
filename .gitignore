@@ -1,0 +1,7 @@
+# Work Request Tracker v1.7.1
+node_modules/
+# Personal Apps Script settings and credentials: never commit these
+.clasp.json
+.clasprc.json
+.deploy.json
+.DS_Store

@@ -1,4 +1,5 @@
-# Push only the app files to Apps Script (Work Request Tracker v1.7.0)
+# Work Request Tracker v1.7.1
+# Push only the app files to Apps Script. Everything else (docs, tests, scripts, node_modules) stays local.
 **/**
 !appsscript.json
 !Code.gs

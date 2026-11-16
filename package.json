@@ -1,0 +1,22 @@
+{
+  "name": "work-request-tracker",
+  "version": "1.7.1",
+  "private": true,
+  "description": "No-login repair request workflow for tenants and landlords, built on Google Apps Script.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node scripts/check-version.js && node tests/flow.test.js",
+    "check": "node scripts/check-version.js",
+    "bump": "node scripts/bump-version.js",
+    "push": "node scripts/deploy.js push",
+    "watch": "node scripts/deploy.js connect && clasp push --watch",
+    "release": "node scripts/deploy.js release",
+    "login": "clasp login --no-localhost"
+  },
+  "devDependencies": {
+    "@google/clasp": "3.4.1"
+  }
+}

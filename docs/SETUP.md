@@ -1,6 +1,6 @@
 # Setup and Testing Guide
 
-*For Work Request Tracker v1.7.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
+*For Work Request Tracker v1.7.1. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
 
 This guide takes you from nothing to a working, tested tracker. Each step lists **what to do**, **what you should see**, and **what to check** before moving on. Plan on 20 to 30 minutes, including testing.
 
@@ -101,7 +101,7 @@ This guide takes you from nothing to a working, tested tracker. Each step lists 
 3. In the **Execution log**, copy the line that starts "Your tenant link."
 4. Open it in your browser and **bookmark it.**
 
-**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.7.0`) at the bottom, with **Summary** and **All requests** tabs, a **+ New request** button, summary tiles (Open requests, Upcoming visits, Need your confirmation) and a calendar.
+**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.7.1`) at the bottom, with **Summary** and **All requests** tabs, a **+ New request** button, summary tiles (Open requests, Upcoming visits, Need your confirmation) and a calendar.
 
 **Check:** the tenant link works like a password. Don't share it. If you open the bare URL without `?k=...`, you should see "This link is not valid," which confirms the protection is working.
 
@@ -293,30 +293,11 @@ On the tenant page, open WR-0002 and click **Withdraw request**.
 | Page shows old behavior after a code change (version at the bottom of the page is the old number) | Deployment not updated | **Deploy > Manage deployments > Edit > New version** |
 | "Exceeded maximum execution time" or email quota error | Google's daily limits | Wait 24 hours. Gmail allows about 100 emails a day, Workspace about 1,500 |
 
-## Upload the files instead of pasting (clasp)
-
-The Apps Script editor has no upload button, but Google's command-line tool, **clasp**, uploads the files directly from your computer. It's the better route for updates: one command replaces every file. You need Node.js installed ([nodejs.org](https://nodejs.org), LTS version).
-
-**One-time setup (Mac Terminal):**
-1. Turn on the Apps Script API: go to [script.google.com/home/usersettings](https://script.google.com/home/usersettings) and switch **Google Apps Script API** to **On**.
-2. Install clasp: `npm install -g @google/clasp`
-3. Sign in: `clasp login`. A browser window opens; approve with the same Google account that owns the Sheet.
-4. Get your Script ID: in the Apps Script editor, **Project Settings (gear) > IDs > Script ID > Copy**.
-5. In Terminal, go to the unzipped project folder, for example `cd ~/Downloads/work-request-tracker`.
-6. Link the folder to your project: `echo '{"scriptId":"PASTE_SCRIPT_ID","rootDir":"."}' > .clasp.json`
-
-**Every upload:**
-1. `clasp push` and answer **y** if it asks to overwrite the manifest. The included `.claspignore` uploads only the six app files.
-2. Refresh the Apps Script editor to see the new files.
-3. Publish: **Deploy > Manage deployments > Edit > New version > Deploy**.
-
-**Check:** the bottom of your tenant page shows the new version number.
-
 ## Updating the code later
-1. Paste the updated file(s) into the editor and save.
-2. **Deploy > Manage deployments**, click the **pencil**, set **Version** to **New version**, and click **Deploy**.
 
-The URL and all existing links keep working.
+**Don't paste code.** Updates come from the GitHub repo through GitHub Actions, which uploads the files to Apps Script and updates the live web app without changing its URL. See **[Managing and Deploying the Code](DEVELOPMENT.md)** for the one-time setup (about 15 minutes, all in the browser) and the everyday workflow.
+
+For the very first install only, before the pipeline is set up, use the paste steps in Part 1. After that, every change goes through the repo.
 
 ## Reusing for another property, client or vendor
 1. In Google Drive, open the Sheet and choose **File > Make a copy**. The script copies with it.

@@ -123,7 +123,7 @@ The app requests only what it needs. It **cannot** read your other files, email 
 
 ## Tech
 
-Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Drive (Advanced Drive service, `drive.file` scope) for photos, MailApp for email, and time-driven triggers for reminders. Plain HTML, CSS and JavaScript, with no build step and no dependencies.
+Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Drive (Advanced Drive service, `drive.file` scope) for photos, MailApp for email, and time-driven triggers for reminders. Plain HTML, CSS and JavaScript, with no build step and no runtime dependencies. Delivery: GitHub Actions runs the tests and a version-consistency check, then deploys with clasp; a version tag promotes the build to the live web app.
 
 ## Setup (20 to 30 minutes, including testing)
 
@@ -139,7 +139,7 @@ Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Dri
 
 > On Google Workspace accounts, "Anyone" access may be disabled by admin policy. Enable it in the Admin console, or deploy from a personal Google account.
 
-**Updating:** Deploy > Manage deployments > Edit > New version. The URL and links stay the same.
+**Updating:** code is managed in this repo and deployed by GitHub Actions: pushing to `main` updates the test link, and pushing a tag such as `v1.8.0` updates the live link without changing its URL. See [Managing and Deploying the Code](docs/DEVELOPMENT.md).
 
 **Reusing:** make a copy of the Sheet, delete the `TENANT_KEY`, `LANDLORD_KEY` and `WEB_APP_URL` rows on the copy's Config tab, run `setup`, and deploy.
 
@@ -154,6 +154,10 @@ Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Dri
 | `Styles.html` | Shared styles, mobile-first |
 | `appsscript.json` | Manifest: time zone, web app access, permissions |
 | `docs/SETUP.md` | Step-by-step setup, test plan and troubleshooting |
+| `docs/DEVELOPMENT.md` | How code moves from this repo to Apps Script: CI, deploys, versioning |
+| `tests/flow.test.js` | Server flow tests: mocks Apps Script services in Node |
+| `scripts/` | Version check, version bump and deploy (clasp) scripts |
+| `.github/workflows/` | Test on every push; deploy to Apps Script from `main` and version tags |
 
 ## Outcome
 

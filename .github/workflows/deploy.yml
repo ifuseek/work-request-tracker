@@ -1,0 +1,70 @@
+# Work Request Tracker v1.7.0
+# Sends the code from this repo to Google Apps Script. No copy and paste.
+#   Push to main        -> uploads the code; the test (/dev) link runs it right away.
+#   Push a tag v1.2.3   -> uploads, saves a version, and updates the live (/exec) web app. Same URL.
+#   Run workflow        -> choose "push" or "release" by hand from the Actions tab.
+# Needs three repository secrets (Settings > Secrets and variables > Actions):
+#   CLASPRC_JSON, SCRIPT_ID, DEPLOYMENT_ID. See docs/DEVELOPMENT.md.
+# Without them (for example on a fork), the deploy is skipped.
+name: Deploy to Apps Script
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'push = test (/dev) link only; release = also update the live (/exec) link'
+        type: choice
+        options: [push, release]
+        default: push
+permissions:
+  contents: read
+concurrency:
+  group: apps-script-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+      DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
+    steps:
+      - name: Check secrets
+        id: secrets
+        run: |
+          if [ -z "$CLASPRC_JSON" ] || [ -z "$SCRIPT_ID" ]; then
+            echo "Apps Script secrets are not set; skipping deploy. See docs/DEVELOPMENT.md."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version: 20
+      - name: Install clasp
+        if: steps.secrets.outputs.ready == 'true'
+        run: npm ci || npm install
+      - name: Test
+        if: steps.secrets.outputs.ready == 'true'
+        run: npm test
+      - name: Sign in to Apps Script
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          umask 077
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+      - name: Deploy
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          MODE="${{ github.event.inputs.mode }}"
+          if [ -z "$MODE" ]; then
+            if [ "$GITHUB_REF_TYPE" = "tag" ]; then MODE=release; else MODE=push; fi
+          fi
+          node scripts/deploy.js "$MODE"
+      - name: Remove credentials
+        if: always()
+        run: rm -f "$HOME/.clasprc.json" .clasp.json

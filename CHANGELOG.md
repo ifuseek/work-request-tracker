@@ -2,6 +2,15 @@
 
 Each file carries its version inline (a comment at the top, and `APP_VERSION` in `Code.gs`). The version also shows at the bottom of every page, in the menu dialogs and in every email, so you can confirm which version is live. `appsscript.json` can't hold comments; it changes rarely and is noted below when it does.
 
+## 1.7.1 (2026-11-16)
+
+- **Code is managed in GitHub, never pasted.** GitHub Actions runs the tests on every push, uploads to Apps Script from `main` (test link), and promotes a version tag such as `v1.8.0` to the live web app without changing its URL
+- `npm test`: a version-consistency check plus the server flow tests, now in `tests/`
+- `npm run bump -- x.y.z`: moves every file to a new version and adds a CHANGELOG entry
+- `npm run push` / `npm run release`: the same deploy from your own computer (optional)
+- New guide: `docs/DEVELOPMENT.md`. `SETUP.md` now points there for updates
+- App behavior is unchanged; `Code.gs` and the pages change only their version number
+
 ## 1.7.0 (2026-11-16)
 
 - **Invite the landlord** (Work Requests > 3. Invite the landlord): previews an introduction email explaining how the tracker works, the requested response times, and a **View all requests** link, with an **About privacy** section. Add an optional personal note, send yourself a test copy, then send. Nothing is sent until you click Send. The invite is recorded in the Log

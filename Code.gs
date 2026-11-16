@@ -456,17 +456,26 @@ function nextId_(sheet) {
   return 'WR-' + ('000' + (max + 1)).slice(-4);
 }
 
+/*
+ * Photos use the Drive API with the narrow "drive.file" permission:
+ * the app can only see and manage files and folders it created itself,
+ * never anything else in the owner's Drive.
+ */
 function savePhotos_(id, photos) {
-  const folder = photoFolder_();
+  const folderId = photoFolder_();
   const out = [];
   photos.slice(0, 5).forEach(function (p, i) {
     if (!p || !p.data) return;
     const bytes = Utilities.base64Decode(p.data);
     if (bytes.length > 8 * 1024 * 1024) return;
-    const blob = Utilities.newBlob(bytes, p.mimeType || 'image/jpeg', id + '-' + (i + 1) + '.jpg');
-    const file = folder.createFile(blob);
-    try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { /* sharing restricted */ }
-    out.push({ url: file.getUrl(), blob: blob });
+    const name = id + '-' + (i + 1) + '.jpg';
+    const blob = Utilities.newBlob(bytes, p.mimeType || 'image/jpeg', name);
+    const file = Drive.Files.create({ name: name, parents: [folderId] }, blob,
+      { fields: 'id,webViewLink' });
+    try {
+      Drive.Permissions.create({ role: 'reader', type: 'anyone' }, file.id);
+    } catch (e) { /* link sharing may be restricted by Workspace policy */ }
+    out.push({ url: file.webViewLink, blob: blob });
   });
   return out;
 }
@@ -477,11 +486,17 @@ function photoFolder_() {
   const propKey = 'PHOTO_FOLDER_ID_' + SpreadsheetApp.getActive().getId();
   const fid = props.getProperty(propKey);
   if (fid) {
-    try { return DriveApp.getFolderById(fid); } catch (e) { /* recreate */ }
+    try {
+      const f = Drive.Files.get(fid, { fields: 'id,trashed' });
+      if (!f.trashed) return f.id;
+    } catch (e) { /* recreate */ }
   }
-  const folder = DriveApp.createFolder(PHOTO_FOLDER_NAME + ' - ' + config_().PROPERTY_NAME);
-  props.setProperty(propKey, folder.getId());
-  return folder;
+  const folder = Drive.Files.create({
+    name: PHOTO_FOLDER_NAME + ' - ' + config_().PROPERTY_NAME,
+    mimeType: 'application/vnd.google-apps.folder'
+  }, null, { fields: 'id' });
+  props.setProperty(propKey, folder.id);
+  return folder.id;
 }
 
 /* ------------------------------------------------------------------ */

@@ -96,9 +96,21 @@ stateDiagram-v2
 - **No personal data in the code.** Names, emails and requests live in the owner's Sheet.
 - **Concurrency.** Writes run under a script lock, so simultaneous actions can't collide.
 
+## Permissions (least privilege)
+
+The app requests only what it needs. It **cannot** read your other files, email or contacts.
+
+| Permission | Why |
+| --- | --- |
+| `spreadsheets.currentonly` | Read and write **only the Sheet this script is attached to** |
+| `drive.file` | Create and share **only the photo folder and photos the app itself creates**. No access to anything else in Drive |
+| `script.send_mail` | Send notification emails from your account. It cannot read your inbox |
+| `script.scriptapp` | Install the optional daily reminder |
+| `userinfo.email` | Read your own email address to fill in the default tenant email |
+
 ## Tech
 
-Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Drive for photos, MailApp for email, and time-driven triggers for reminders. Plain HTML, CSS and JavaScript, with no build step and no dependencies.
+Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Drive (Advanced Drive service, `drive.file` scope) for photos, MailApp for email, and time-driven triggers for reminders. Plain HTML, CSS and JavaScript, with no build step and no dependencies.
 
 ## Setup (about 15 minutes)
 

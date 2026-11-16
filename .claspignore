@@ -1,0 +1,8 @@
+# Push only the app files to Apps Script (Work Request Tracker v1.2.0)
+**/**
+!appsscript.json
+!Code.gs
+!Tenant.html
+!Landlord.html
+!Shared.html
+!Styles.html

@@ -112,7 +112,9 @@ The app requests only what it needs. It **cannot** read your other files, email 
 
 Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Drive (Advanced Drive service, `drive.file` scope) for photos, MailApp for email, and time-driven triggers for reminders. Plain HTML, CSS and JavaScript, with no build step and no dependencies.
 
-## Setup (about 15 minutes)
+## Setup (20 to 30 minutes, including testing)
+
+**Follow the full [Setup and Testing Guide](docs/SETUP.md).** It covers where to click at every step, what you should see, the permissions to expect, a complete test plan with checkboxes, troubleshooting, and going live. The summary below is for reference.
 
 1. **Create a Google Sheet** for the tracker.
 2. **Open Extensions > Apps Script.** Replace `Code.gs` with this repo's version. Add four HTML files named `Tenant`, `Landlord`, `Styles` and `Shared` and paste in their contents. Under **Project Settings**, show the manifest and replace `appsscript.json`.
@@ -138,6 +140,7 @@ Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Dri
 | `Shared.html` | Client helpers shared by both pages |
 | `Styles.html` | Shared styles, mobile-first |
 | `appsscript.json` | Manifest: time zone, web app access, permissions |
+| `docs/SETUP.md` | Step-by-step setup, test plan and troubleshooting |
 
 ## Outcome
 

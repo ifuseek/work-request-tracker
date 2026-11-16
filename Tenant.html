@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Work Request Tracker v1.2.1 -->
+<!-- Work Request Tracker v1.3.0 -->
 <html>
 <head>
   <base target="_top">
@@ -66,7 +66,9 @@
         <textarea id="access" maxlength="1000" style="min-height:64px"
           placeholder="e.g., Please propose times here; exterior work needs no entry."></textarea>
         <label for="photos">Photos (up to 5)</label>
-        <input type="file" id="photos" accept="image/*" multiple>
+        <input type="file" id="photos" accept="image/*" multiple onchange="addPhotos(this)">
+        <div id="photoPreview" class="thumbs"></div>
+        <div id="photoNote" class="help"></div>
         <div class="actions">
           <button id="submitBtn" onclick="submitRequest()">Submit request</button>
           <button class="secondary" onclick="showList()">Cancel</button>
@@ -132,8 +134,41 @@
       window.scrollTo(0, 0);
     }
     function showList() { show('listView'); load(); }
+    var selectedPhotos = [];
+    var MAX_PHOTOS = 5;
+
+    // Add newly chosen photos to the selection (up to 5) and show previews.
+    function addPhotos(input) {
+      var added = Array.prototype.slice.call(input.files || []);
+      var room = MAX_PHOTOS - selectedPhotos.length;
+      selectedPhotos = selectedPhotos.concat(added.slice(0, Math.max(room, 0)));
+      document.getElementById('photoNote').textContent = added.length > room
+        ? 'Only ' + MAX_PHOTOS + ' photos can be attached. Extra photos were not added.' : '';
+      input.value = '';
+      renderPreviews();
+    }
+
+    function renderPreviews() {
+      var box = document.getElementById('photoPreview');
+      clear(box);
+      selectedPhotos.forEach(function (file, i) {
+        var img = el('img', { alt: file.name });
+        var url = URL.createObjectURL(file);
+        img.src = url;
+        img.onload = function () { URL.revokeObjectURL(url); };
+        box.appendChild(el('div', { class: 'thumb' }, [img,
+          el('button', { type: 'button', class: 'thumb-remove', title: 'Remove photo', 'aria-label': 'Remove photo ' + (i + 1),
+            onclick: function () { selectedPhotos.splice(i, 1); document.getElementById('photoNote').textContent = ''; renderPreviews(); },
+            text: '×' })]));
+      });
+      document.getElementById('photos').disabled = selectedPhotos.length >= MAX_PHOTOS;
+    }
+
     function showForm() {
       ['title', 'location', 'description', 'access', 'photos'].forEach(function (id) { document.getElementById(id).value = ''; });
+      selectedPhotos = [];
+      document.getElementById('photoNote').textContent = '';
+      renderPreviews();
       document.getElementById('formError').textContent = '';
       show('formView');
     }
@@ -163,7 +198,7 @@
       var err = document.getElementById('formError');
       err.textContent = '';
       var pri = document.querySelector('input[name=priority]:checked');
-      var files = Array.prototype.slice.call(document.getElementById('photos').files || [], 0, 5);
+      var files = selectedPhotos.slice(0, MAX_PHOTOS);
       busy(btn, true); btn.textContent = 'Submitting…';
       Promise.all(files.map(resizeImage)).then(function (photos) {
         return call('tenantCreate', [KEY, {

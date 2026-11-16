@@ -1,0 +1,46 @@
+<script>
+  // Shared client helpers (no data is rendered as HTML; everything uses textContent).
+  function el(tag, attrs, children) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === 'text') e.textContent = attrs[k];
+      else if (k === 'class') e.className = attrs[k];
+      else if (k.indexOf('on') === 0) e.addEventListener(k.slice(2), attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+  function statusClass(s) { return 'badge ' + String(s || '').replace(/[^A-Za-z]/g, ''); }
+  function field(label, value, pre) {
+    if (!value) return null;
+    return el('div', { class: 'field' }, [el('b', { text: label }), el('div', { class: pre ? 'pre' : '', text: value })]);
+  }
+  function call(fn, args) {
+    return new Promise(function (resolve, reject) {
+      var runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(function (err) {
+        reject(err && err.message ? err.message : String(err));
+      });
+      runner[fn].apply(runner, args);
+    });
+  }
+  function photosBlock(photos) {
+    if (!photos || !photos.length) return null;
+    return el('div', { class: 'field' }, [el('b', { text: 'Photos' })].concat(photos.map(function (u, i) {
+      return el('div', {}, [el('a', { href: u, target: '_blank', rel: 'noopener', text: 'Photo ' + (i + 1) })]);
+    })));
+  }
+  function timeline(log) {
+    var ul = el('ul', { class: 'timeline' });
+    (log || []).forEach(function (l) {
+      ul.appendChild(el('li', { class: l.who }, [
+        el('div', { class: 'muted', text: l.at + ' · ' + l.who }),
+        el('div', { text: l.action }),
+        l.note ? el('div', { class: 'pre', text: l.note }) : null
+      ]));
+    });
+    return ul;
+  }
+  function busy(btn, on) { if (btn) { btn.disabled = on; } }
+</script>

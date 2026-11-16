@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Styles') ?>
+</head>
+<body>
+  <header>
+    <h1><?= property ?> · Work Requests</h1>
+    <p>Respond to requests here. No account needed. Every update is time-stamped and shared with the tenant.</p>
+  </header>
+  <main>
+    <div id="app"><p class="muted">Loading…</p></div>
+  </main>
+
+  <?!= include('Shared') ?>
+  <script>
+    var MODE = <?!= JSON.stringify(mode).replace(/</g, '\\u003c') ?>;
+    var ID = <?!= JSON.stringify(id).replace(/</g, '\\u003c') ?>;
+    var TOKEN = <?!= JSON.stringify(token).replace(/</g, '\\u003c') ?>;
+    var LKEY = <?!= JSON.stringify(lkey).replace(/</g, '\\u003c') ?>;
+    var app = document.getElementById('app');
+
+    function loadRequest() {
+      call('landlordDetail', [ID, TOKEN]).then(renderRequest).catch(function (e) { app.textContent = e; });
+    }
+
+    function loadList() {
+      call('landlordList', [LKEY]).then(renderList).catch(function (e) { app.textContent = e; });
+    }
+
+    function renderList(items) {
+      clear(app);
+      if (!items.length) { app.appendChild(el('p', { class: 'muted', text: 'No requests yet.' })); return; }
+      items.forEach(function (r) {
+        app.appendChild(el('div', { class: 'card' }, [
+          el('div', { class: 'row' }, [
+            el('a', { href: r.link, text: r.id + ' · ' + r.title }),
+            el('span', { class: statusClass(r.status), text: r.status })
+          ]),
+          el('div', { class: 'muted', text: r.category + ' · ' + r.priority.split(' (')[0] + ' · Updated ' + r.updated })
+        ]));
+      });
+    }
+
+    function renderRequest(r) {
+      clear(app);
+      app.appendChild(el('div', { class: 'card' }, [
+        el('div', { class: 'row' }, [
+          el('h2', { style: 'margin:0;font-size:18px', text: r.id + ' · ' + r.title }),
+          el('span', { class: statusClass(r.status), text: r.status })
+        ]),
+        el('div', { class: 'muted', text: 'Submitted ' + r.created + ' · Updated ' + r.updated }),
+        r.scheduledFor ? el('div', { class: 'notice', style: 'margin-top:10px', text: 'Scheduled: ' + r.scheduledFor }) : null,
+        field('Category', r.category), field('Priority', r.priority + ' · requested response ' + r.responseTime),
+        field('Location', r.location), field('Description', r.description, true),
+        field('Access and scheduling notes', r.access, true), photosBlock(r.photos)
+      ]));
+      app.appendChild(el('div', { class: 'card' }, [el('h3', { style: 'margin-top:0;font-size:16px', text: 'History' }), timeline(r.log)]));
+
+      if (!r.open) {
+        app.appendChild(el('div', { class: 'card notice', text: 'This request is ' + r.status.toLowerCase() + '. No further action is needed.' }));
+        return;
+      }
+
+      var note = el('textarea', { placeholder: 'Message to the tenant' });
+      var when = el('input', { type: 'text', placeholder: 'e.g., Tue Nov 24, 10 AM to 12 PM' });
+      var err = el('div', { class: 'error' });
+      function act(action, opts) {
+        return function (ev) {
+          err.textContent = '';
+          if (opts && opts.note && !note.value.trim()) { err.textContent = opts.note; return; }
+          if (opts && opts.when && !when.value.trim()) { err.textContent = 'Please enter a date and time window.'; return; }
+          busy(ev.target, true);
+          call('landlordAction', [ID, TOKEN, action, note.value, when.value]).then(renderRequest)
+            .catch(function (e) { err.textContent = e; busy(ev.target, false); });
+        };
+      }
+      app.appendChild(el('div', { class: 'card' }, [
+        el('h3', { style: 'margin-top:0;font-size:16px', text: 'Respond' }),
+        el('label', { text: 'Message' }), note,
+        el('label', { text: 'Date and time window (for scheduling)' }), when,
+        el('div', { class: 'help', text: 'For work inside the home, propose a time at least 24 hours ahead. The tenant confirms it here.' }),
+        el('div', { class: 'actions' }, [
+          r.status === 'Submitted' ? el('button', { onclick: act('acknowledge'), text: 'Acknowledge' }) : null,
+          el('button', { class: 'secondary', onclick: act('schedule', { when: true }), text: 'Schedule' }),
+          el('button', { class: 'secondary', onclick: act('update', { note: 'Please enter an update.' }), text: 'Post update' }),
+          el('button', { class: 'secondary', onclick: act('complete'), text: 'Mark complete' }),
+          el('button', { class: 'danger', onclick: act('decline', { note: 'Please give a reason for declining.' }), text: 'Decline (reason required)' })
+        ]),
+        err
+      ]));
+    }
+
+    if (MODE === 'list') loadList(); else loadRequest();
+  </script>
+</body>
+</html>

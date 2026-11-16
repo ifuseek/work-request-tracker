@@ -38,7 +38,8 @@
             el('a', { href: r.link, text: r.id + ' · ' + r.title }),
             el('span', { class: statusClass(r.status), text: r.status })
           ]),
-          el('div', { class: 'muted', text: r.category + ' · ' + r.priority.split(' (')[0] + ' · Updated ' + r.updated })
+          el('div', { class: 'muted', text: [r.building, r.area].filter(Boolean).join(' · ') + (r.building ? ' · ' : '') +
+            r.category + ' · ' + r.priority.split(' (')[0] + ' · Updated ' + r.updated })
         ]));
       });
     }
@@ -53,7 +54,8 @@
         el('div', { class: 'muted', text: 'Submitted ' + r.created + ' · Updated ' + r.updated }),
         r.scheduledFor ? el('div', { class: 'notice', style: 'margin-top:10px', text: 'Scheduled: ' + r.scheduledFor }) : null,
         field('Category', r.category), field('Priority', r.priority + ' · requested response ' + r.responseTime),
-        field('Location', r.location), field('Description', r.description, true),
+        field('Where', [r.building, r.area].filter(Boolean).join(' · ')),
+        field('Specific location', r.location), field('Description', r.description, true),
         field('Access and scheduling notes', r.access, true), photosBlock(r.photos)
       ]));
       app.appendChild(el('div', { class: 'card' }, [el('h3', { style: 'margin-top:0;font-size:16px', text: 'History' }), timeline(r.log)]));
@@ -80,7 +82,9 @@
         el('h3', { style: 'margin-top:0;font-size:16px', text: 'Respond' }),
         el('label', { text: 'Message' }), note,
         el('label', { text: 'Date and time window (for scheduling)' }), when,
-        el('div', { class: 'help', text: 'For work inside the home, propose a time at least 24 hours ahead. The tenant confirms it here.' }),
+        el('div', { class: 'help', text: r.area === 'Exterior'
+          ? 'Exterior work: no entry needed. Share the date so the tenant knows when to expect someone.'
+          : 'Interior work: propose a time at least 24 hours ahead. The tenant confirms it here.' }),
         el('div', { class: 'actions' }, [
           r.status === 'Submitted' ? el('button', { onclick: act('acknowledge'), text: 'Acknowledge' }) : null,
           el('button', { class: 'secondary', onclick: act('schedule', { when: true }), text: 'Schedule' }),

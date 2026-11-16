@@ -20,7 +20,7 @@ const PHOTO_FOLDER_NAME = 'Work Request Photos';
 const REQUEST_HEADERS = [
   'ID', 'Created', 'Updated', 'Title', 'Category', 'Priority', 'Location',
   'Description', 'Access notes', 'Photos', 'Status', 'Scheduled for',
-  'Token', 'Last reminder'
+  'Token', 'Last reminder', 'Building', 'Interior or exterior'
 ];
 const LOG_HEADERS = ['Timestamp', 'Request ID', 'Who', 'Action', 'Note'];
 
@@ -38,6 +38,7 @@ const OPEN_STATUSES = [STATUS.SUBMITTED, STATUS.ACKNOWLEDGED, STATUS.SCHEDULED, 
 const CATEGORIES = ['Heating / air quality', 'Plumbing / septic', 'Electrical', 'Appliance',
   'Roof / gutters', 'Trees / grounds', 'Safety (alarms, locks)', 'Structure / exterior', 'Other'];
 const PRIORITIES = ['Urgent (safety, no heat, water or power)', 'Standard', 'Routine'];
+const AREAS = ['Interior', 'Exterior'];
 
 const DEFAULT_CONFIG = {
   PROPERTY_NAME: 'Your Property',
@@ -49,6 +50,7 @@ const DEFAULT_CONFIG = {
   STANDARD_RESPONSE: 'within 3 business days',
   ROUTINE_RESPONSE: 'within 7 days',
   REMINDER_AFTER_DAYS: '3',
+  BUILDINGS: 'Main house, Cottage, Grounds',
   WEB_APP_URL: '',
   TENANT_KEY: '',
   LANDLORD_KEY: ''
@@ -185,6 +187,8 @@ function doGet(e) {
   t.property = c.PROPERTY_NAME;
   t.categories = CATEGORIES;
   t.priorities = PRIORITIES;
+  t.buildings = buildings_();
+  t.areas = AREAS;
   t.responseTimes = {
     urgent: c.URGENT_RESPONSE, standard: c.STANDARD_RESPONSE, routine: c.ROUTINE_RESPONSE
   };
@@ -218,11 +222,14 @@ function tenantCreate(key, form) {
   if (!title || !description) throw new Error('Please add a title and a description.');
   const category = CATEGORIES.indexOf(form.category) >= 0 ? form.category : 'Other';
   const priority = PRIORITIES.indexOf(form.priority) >= 0 ? form.priority : 'Standard';
+  const building = buildings_().indexOf(form.building) >= 0 ? form.building : '';
+  const area = AREAS.indexOf(form.area) >= 0 ? form.area : '';
+  if (!building || !area) throw new Error('Please choose where the work is and whether it is interior or exterior.');
 
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    const sheet = sheet_(SHEET_REQUESTS);
+    const sheet = ensureSheet_(SpreadsheetApp.getActive(), SHEET_REQUESTS, REQUEST_HEADERS);
     const id = nextId_(sheet);
     const now = new Date();
     const files = savePhotos_(id, form.photos || []);
@@ -230,7 +237,7 @@ function tenantCreate(key, form) {
     sheet.appendRow([
       id, now, now, title, category, priority, clean_(form.location, 200), description,
       clean_(form.access, 1000), files.map(function (f) { return f.url; }).join('\n'),
-      STATUS.SUBMITTED, '', token, ''
+      STATUS.SUBMITTED, '', token, '', building, area
     ]);
     log_(id, 'Tenant', 'Submitted request', '');
     const req = findRequest_(id);
@@ -407,6 +414,7 @@ function emailHtml_(req, heading, note, link, buttonLabel) {
     ['Status', req.status + (req.scheduledFor ? ' (' + req.scheduledFor + ')' : '')],
     ['Category', req.category],
     ['Priority', req.priority],
+    ['Where', [req.building, req.area].filter(String).join(' · ') || '–'],
     ['Location', req.location || '–'],
     ['Description', req.description],
     ['Access notes', req.access || '–']
@@ -445,7 +453,7 @@ function rowToRequest_(v, row) {
     row: row, id: v[0], created: v[1], updated: v[2], title: v[3], category: v[4],
     priority: v[5], location: v[6], description: v[7], access: v[8],
     photos: String(v[9] || '').split('\n').filter(String), status: v[10],
-    scheduledFor: v[11], token: v[12], lastReminder: v[13]
+    scheduledFor: v[11], token: v[12], lastReminder: v[13], building: v[14] || '', area: v[15] || ''
   };
 }
 
@@ -465,6 +473,7 @@ function publicRequest_(r) {
   return {
     id: r.id, created: fmt_(r.created), updated: fmt_(r.updated), title: r.title,
     category: r.category, priority: r.priority, location: r.location,
+    building: r.building, area: r.area,
     description: r.description, access: r.access, photos: r.photos, status: r.status,
     scheduledFor: r.scheduledFor, open: OPEN_STATUSES.indexOf(r.status) >= 0,
     responseTime: responseTime_(r.priority)
@@ -611,6 +620,12 @@ function ensureSheet_(ss, name, headers) {
   if (s.getLastRow() === 0) {
     s.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
     s.setFrozenRows(1);
+  } else {
+    // Add any columns introduced by a newer version, without moving existing data.
+    const current = s.getRange(1, 1, 1, headers.length).getValues()[0];
+    headers.forEach(function (h, i) {
+      if (!current[i]) s.getRange(1, i + 1).setValue(h).setFontWeight('bold');
+    });
   }
   return s;
 }
@@ -622,6 +637,11 @@ function clean_(v, max) {
 function fmt_(d) {
   if (!d) return '';
   return Utilities.formatDate(new Date(d), Session.getScriptTimeZone(), 'MMM d, yyyy h:mm a');
+}
+
+function buildings_() {
+  return String(config_().BUILDINGS || DEFAULT_CONFIG.BUILDINGS).split(',')
+    .map(function (b) { return b.trim(); }).filter(String);
 }
 
 function responseTime_(priority) {

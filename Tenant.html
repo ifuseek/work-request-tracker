@@ -28,18 +28,42 @@
         <h2 style="margin-top:0;font-size:18px">New work request</h2>
         <label for="title">What needs attention?</label>
         <input type="text" id="title" maxlength="120" placeholder="e.g., Garage gutter has come apart">
+        <label>Where</label>
+        <div class="choices">
+          <? for (var b = 0; b < buildings.length; b++) { ?>
+            <label class="choice"><input type="radio" name="building" value="<?= buildings[b] ?>"
+              <?= b === 0 ? 'checked' : '' ?>> <?= buildings[b] ?></label>
+          <? } ?>
+        </div>
+        <div class="choices" style="margin-top:8px">
+          <? for (var a = 0; a < areas.length; a++) { ?>
+            <label class="choice"><input type="radio" name="area" value="<?= areas[a] ?>"
+              <?= a === 0 ? 'checked' : '' ?>> <?= areas[a] ?></label>
+          <? } ?>
+        </div>
+        <div class="help">Interior work needs a visit time agreed at least 24 hours ahead. Exterior work usually needs no entry.</div>
         <label for="category">Category</label>
-        <select id="category"></select>
+        <select id="category">
+          <? for (var c = 0; c < categories.length; c++) { ?>
+            <option value="<?= categories[c] ?>"><?= categories[c] ?></option>
+          <? } ?>
+        </select>
         <label>Priority</label>
-        <div id="priorities"></div>
-        <label for="location">Location</label>
+        <div>
+          <? for (var p = 0; p < priorities.length; p++) {
+               var pr = priorities[p];
+               var time = p === 0 ? responseTimes.urgent : (pr === 'Routine' ? responseTimes.routine : responseTimes.standard); ?>
+            <label class="choice block"><input type="radio" name="priority" value="<?= pr ?>"
+              <?= pr === 'Standard' ? 'checked' : '' ?>> <?= pr ?> · response <?= time ?></label>
+          <? } ?>
+        </div>
+        <label for="location">Specific location</label>
         <input type="text" id="location" maxlength="200" placeholder="e.g., Garage, northeast corner">
         <label for="description">Description</label>
         <textarea id="description" maxlength="4000" placeholder="What is happening, since when, and any safety concerns."></textarea>
         <label for="access">Access and scheduling notes</label>
         <textarea id="access" maxlength="1000" style="min-height:64px"
           placeholder="e.g., Please propose times here; exterior work needs no entry."></textarea>
-        <div class="help">Interior visits are coordinated in the tracker with at least 24 hours' notice.</div>
         <label for="photos">Photos (up to 5)</label>
         <input type="file" id="photos" accept="image/*" multiple>
         <div class="actions">
@@ -60,26 +84,10 @@
   <?!= include('Shared') ?>
   <script>
     var KEY = <?!= JSON.stringify(key).replace(/</g, '\\u003c') ?>;
-    var CATEGORIES = <?!= JSON.stringify(categories).replace(/</g, '\\u003c') ?>;
-    var PRIORITIES = <?!= JSON.stringify(priorities).replace(/</g, '\\u003c') ?>;
-    var RESPONSE = <?!= JSON.stringify(responseTimes).replace(/</g, '\\u003c') ?>;
     var requests = [];
     var filter = 'open';
 
-    function init() {
-      var cat = document.getElementById('category');
-      CATEGORIES.forEach(function (c) { cat.appendChild(el('option', { value: c, text: c })); });
-      var pr = document.getElementById('priorities');
-      PRIORITIES.forEach(function (p, i) {
-        var time = i === 0 ? RESPONSE.urgent : (p === 'Routine' ? RESPONSE.routine : RESPONSE.standard);
-        var id = 'pri' + i;
-        var input = el('input', { type: 'radio', name: 'priority', id: id, value: p });
-        if (p === 'Standard') input.checked = true;
-        pr.appendChild(el('div', { style: 'margin:4px 0' }, [input, ' ',
-          el('label', { for: id, style: 'display:inline;font-weight:400', text: p + ' · response ' + time })]));
-      });
-      load();
-    }
+    function init() { load(); }
 
     function load() {
       call('tenantList', [KEY]).then(function (r) { requests = r; renderList(); })
@@ -107,7 +115,8 @@
             el('strong', { text: r.id + ' · ' + r.title }),
             el('span', { class: statusClass(r.status), text: r.status })
           ]),
-          el('div', { class: 'muted', text: r.category + ' · ' + r.priority.split(' (')[0] +
+          el('div', { class: 'muted', text: [r.building, r.area].filter(Boolean).join(' · ') + (r.building ? ' · ' : '') +
+            r.category + ' · ' + r.priority.split(' (')[0] +
             (r.scheduledFor && r.status === 'Scheduled' ? ' · Scheduled ' + r.scheduledFor : '') +
             ' · Updated ' + r.updated })
         ]));
@@ -159,6 +168,8 @@
           title: document.getElementById('title').value,
           category: document.getElementById('category').value,
           priority: pri ? pri.value : 'Standard',
+          building: (document.querySelector('input[name=building]:checked') || {}).value || '',
+          area: (document.querySelector('input[name=area]:checked') || {}).value || '',
           location: document.getElementById('location').value,
           description: document.getElementById('description').value,
           access: document.getElementById('access').value,
@@ -204,7 +215,8 @@
         el('div', { class: 'muted', text: 'Submitted ' + r.created + ' · Updated ' + r.updated }),
         r.scheduledFor ? el('div', { class: 'notice', style: 'margin-top:10px', text: 'Scheduled: ' + r.scheduledFor }) : null,
         field('Category', r.category), field('Priority', r.priority + ' · requested response ' + r.responseTime),
-        field('Location', r.location), field('Description', r.description, true),
+        field('Where', [r.building, r.area].filter(Boolean).join(' · ')),
+        field('Specific location', r.location), field('Description', r.description, true),
         field('Access and scheduling notes', r.access, true), photosBlock(r.photos)
       ]));
       d.appendChild(el('div', { class: 'card' }, [el('h3', { style: 'margin-top:0;font-size:16px', text: 'History' }), timeline(r.log)]));

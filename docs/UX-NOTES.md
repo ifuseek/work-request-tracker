@@ -10,3 +10,4 @@ Observations from setting the tracker up as a first-time Apps Script user, and h
 | 4 | The Category dropdown could not be opened or used. | Addressed: categories and all choices are now written into the page by the server instead of built in the browser |
 | 5 | Scheduling needs to know whether work is inside or outside. | Addressed: required **Interior / Exterior** choice; the landlord page adjusts its scheduling guidance |
 | 6 | Requests need to say which building. | Addressed: required **Main house / Cottage / Grounds** choice, configurable on the Config tab (BUILDINGS) |
+| 7 | Running setup left the editor's execution log spinning indefinitely. The script was waiting for an OK click on a pop-up in the Sheet's tab. | Fixed in v1.2.1: messages use a non-blocking pop-up, so actions finish immediately |

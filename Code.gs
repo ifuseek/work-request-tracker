@@ -1,5 +1,5 @@
 /**
- * Work Request Tracker v1.2.0
+ * Work Request Tracker v1.2.1
  * A simple, reusable repair-request workflow between a tenant and a landlord.
  *
  * - Data lives in the Google Sheet this script is bound to.
@@ -12,7 +12,7 @@
  * (Execute as: Me, Who has access: Anyone). See README.md.
  */
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 
 const SHEET_REQUESTS = 'Requests';
 const SHEET_LOG = 'Log';
@@ -73,10 +73,18 @@ function onOpen() {
     .addToUi();
 }
 
-/** Shows a message in the Sheet when run from the menu; logs it otherwise. */
+/**
+ * Shows a message in the Sheet and logs it. Uses a non-blocking dialog, so the
+ * script never waits for a click (an alert would pause it until someone clicks OK).
+ */
 function notify_(title, message) {
   Logger.log(title + ': ' + message);
-  try { SpreadsheetApp.getUi().alert(title, message, SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* run from editor */ }
+  try {
+    const html = HtmlService.createHtmlOutput(
+      '<div style="font-family:Arial,sans-serif;font-size:14px;white-space:pre-wrap">' + esc_(message) +
+      '</div><p><button onclick="google.script.host.close()">OK</button></p>').setWidth(460).setHeight(300);
+    SpreadsheetApp.getUi().showModelessDialog(html, title);
+  } catch (e) { /* no Sheet open: the message is in the execution log */ }
 }
 
 /* ------------------------------------------------------------------ */

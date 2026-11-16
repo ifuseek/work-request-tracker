@@ -2,6 +2,11 @@
 
 Each file carries its version inline (a comment at the top, and `APP_VERSION` in `Code.gs`). The version also shows at the bottom of every page, in the menu dialogs and in every email, so you can confirm which version is live. `appsscript.json` can't hold comments; it changes rarely and is noted below when it does.
 
+## 1.2.1 (2026-11-16)
+
+- Fix: setup and other menu actions no longer hang. Messages use a non-blocking pop-up instead of an alert that paused the script until someone clicked OK in the Sheet
+- No changes to the pages or the manifest; only `Code.gs` changed in behavior (all files carry the new version number)
+
 ## 1.2.0 (2026-11-16)
 
 - Required **Where** choice (Main house, Cottage, Grounds), configurable on the Config tab (BUILDINGS)

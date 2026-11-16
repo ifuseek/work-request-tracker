@@ -1,4 +1,4 @@
-<!-- Work Request Tracker v1.5.0 -->
+<!-- Work Request Tracker v1.6.0 -->
 <style>
   :root {
     --bg: #f6f7f5; --card: #ffffff; --ink: #1f2933; --muted: #616e7c; --line: #e1e5e2;
@@ -47,6 +47,20 @@
     background: #fff; color: var(--ink); }
   input[type=date] { width: 100%; }
   .time-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: center; }
+  .stat.alert { border-color: #e7c97a; background: #fdf8ec; }
+  .stat-n { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .stat-l { font-size: 12px; color: var(--muted); }
+  .section-title { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 20px 0 8px; }
+  .card.attention { border-color: #e7c97a; background: #fffbf1; }
+  .visit { display: flex; gap: 14px; align-items: flex-start; }
+  .datebox { flex: 0 0 58px; text-align: center; border-radius: 8px; background: #eef4f3; padding: 6px 0; }
+  .db-dow, .db-mon { font-size: 12px; color: var(--accent); font-weight: 600; text-transform: uppercase; }
+  .db-day { font-size: 24px; font-weight: 700; line-height: 1.1; }
+  .visit-body { flex: 1; }
+  .when { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .badge.Changerequested { background: #fdf1d8; color: var(--warn); }
   .help { font-size: 13px; color: var(--muted); margin-top: 4px; }
   .list-item { cursor: pointer; }
   .list-item:hover { border-color: var(--accent); }
@@ -64,6 +78,23 @@
   .notice { background: #eef4f3; border: 1px solid #cfe0dd; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
   .error { color: var(--danger); font-size: 14px; margin-top: 8px; }
   .hidden { display: none !important; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .cal-title { font-weight: 600; }
+  .cal-nav { padding: 4px 12px; font-size: 18px; line-height: 1; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .cal-dow { font-size: 11px; color: var(--muted); font-weight: 600; padding: 2px 0; }
+  .cal-day { position: relative; background: transparent; color: var(--ink, #1f2933); border: 1px solid transparent; border-radius: 8px;
+    padding: 8px 0; font-size: 14px; font-weight: 400; min-width: 0; }
+  .cal-day:hover { border-color: var(--line); }
+  .cal-day.today { border-color: var(--accent); }
+  .cal-day.has-visit { background: var(--accent); color: #fff; font-weight: 700; }
+  .cal-dot { position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #fff; }
+  .cal-visit { display: block; padding: 6px 0; border-top: 1px solid var(--line); text-decoration: none; color: inherit; }
+  .cal-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .btn-link { display: inline-block; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font-size: 14px;
+    text-decoration: none; color: var(--accent); background: #fff; }
+  .btn-link:hover { border-color: var(--accent); }
+  .backlink { display: inline-block; margin-bottom: 12px; text-decoration: none; color: var(--accent); font-weight: 600; }
   a { color: var(--accent); }
   @media (max-width: 480px) { main { padding: 12px; } .card { padding: 14px; } }
 </style>

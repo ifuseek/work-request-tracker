@@ -2,6 +2,17 @@
 
 Each file carries its version inline (a comment at the top, and `APP_VERSION` in `Code.gs`). The version also shows at the bottom of every page, in the menu dialogs and in every email, so you can confirm which version is live. `appsscript.json` can't hold comments; it changes rarely and is noted below when it does.
 
+## 1.6.0 (2026-11-17)
+
+- **Tenant confirmation:** a scheduled visit shows **Confirm this time** and **Request a change** (a reason is required). A change request sets the status to **Change requested** and clears any confirmation
+- **Landlord, once scheduled:** the scheduling form is replaced by a **Scheduled visit** card showing the confirmation status. Only **Request a change** reopens it, and a reason is required
+- **Landlord, change requested:** shows the tenant's note and a **Propose a new time** form
+- **Summary pages:** tenant Summary with tiles, Needs your attention, Upcoming visits and a calendar; tenant **All requests** tab (open and closed); landlord **← All requests** link and a redesigned overview (Needs your response, Upcoming visits, Calendar, Other open, Closed)
+- **Calendar:** a month view on both pages that highlights visit days; tap a day to see and open its visits
+- **Add to calendar:** Google Calendar link and a downloadable .ics file (Apple Calendar, Outlook) for each scheduled visit. The .ics link checks the tenant key or the request's landlord token
+- New Requests column **Scheduled end** (added automatically on first run)
+- Changed files: `Code.gs`, `Tenant.html`, `Landlord.html`, `Shared.html`, `Styles.html` (all files carry the new version number). `appsscript.json` is unchanged
+
 ## 1.5.0 (2026-11-16)
 
 - Scheduling asks **Who will be on site?**: Landlord, Contractor, or Someone else

@@ -1,5 +1,5 @@
 /**
- * Work Request Tracker v1.5.0
+ * Work Request Tracker v1.6.0
  * A simple, reusable repair-request workflow between a tenant and a landlord.
  *
  * - Data lives in the Google Sheet this script is bound to.
@@ -12,7 +12,7 @@
  * (Execute as: Me, Who has access: Anyone). See README.md.
  */
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 
 const SHEET_REQUESTS = 'Requests';
 const SHEET_LOG = 'Log';
@@ -22,7 +22,7 @@ const PHOTO_FOLDER_NAME = 'Work Request Photos';
 const REQUEST_HEADERS = [
   'ID', 'Created', 'Updated', 'Title', 'Category', 'Priority', 'Location',
   'Description', 'Access notes', 'Photos', 'Status', 'Scheduled for',
-  'Token', 'Last reminder', 'Building', 'Interior or exterior'
+  'Token', 'Last reminder', 'Building', 'Interior or exterior', 'Scheduled start', 'Tenant confirmed', 'Scheduled end'
 ];
 const LOG_HEADERS = ['Timestamp', 'Request ID', 'Who', 'Action', 'Note'];
 
@@ -30,12 +30,13 @@ const STATUS = {
   SUBMITTED: 'Submitted',
   ACKNOWLEDGED: 'Acknowledged',
   SCHEDULED: 'Scheduled',
+  RESCHEDULE: 'Change requested',
   IN_PROGRESS: 'In progress',
   COMPLETED: 'Completed',
   DECLINED: 'Declined',
   WITHDRAWN: 'Withdrawn'
 };
-const OPEN_STATUSES = [STATUS.SUBMITTED, STATUS.ACKNOWLEDGED, STATUS.SCHEDULED, STATUS.IN_PROGRESS];
+const OPEN_STATUSES = [STATUS.SUBMITTED, STATUS.ACKNOWLEDGED, STATUS.SCHEDULED, STATUS.RESCHEDULE, STATUS.IN_PROGRESS];
 
 const CATEGORIES = ['Heating / air quality', 'Plumbing / septic', 'Electrical', 'Appliance',
   'Roof / gutters', 'Trees / grounds', 'Safety (alarms, locks)', 'Structure / exterior', 'Other'];
@@ -175,6 +176,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   const c = config_();
   let t;
+  if (p.ics) return icsResponse_(p);
   if (p.k && safeEqual_(p.k, c.TENANT_KEY)) {
     t = HtmlService.createTemplateFromFile('Tenant');
     t.key = p.k;
@@ -184,12 +186,14 @@ function doGet(e) {
     t.id = p.r;
     t.token = p.t;
     t.lkey = '';
+    t.overviewUrl = c.WEB_APP_URL + '?lk=' + c.LANDLORD_KEY;
   } else if (p.lk && safeEqual_(p.lk, c.LANDLORD_KEY)) {
     t = HtmlService.createTemplateFromFile('Landlord');
     t.mode = 'list';
     t.id = '';
     t.token = '';
     t.lkey = p.lk;
+    t.overviewUrl = '';
   } else {
     return HtmlService.createHtmlOutput(
       '<p style="font-family:sans-serif;padding:24px">This link is not valid. Please use the link from your email.</p>');
@@ -218,12 +222,12 @@ function include(name) {
 
 function tenantList(key) {
   requireTenant_(key);
-  return allRequests_().map(publicRequest_);
+  return allRequests_().map(function (r) { return withCal_(publicRequest_(r), r, 'k=' + key); });
 }
 
 function tenantDetail(key, id) {
   requireTenant_(key);
-  return detail_(id);
+  return withCal_(detail_(id), mustFind_(id), 'k=' + key);
 }
 
 function tenantCreate(key, form) {
@@ -259,7 +263,7 @@ function tenantCreate(key, form) {
   }
 }
 
-/** action: comment | withdraw | confirm | reopen */
+/** action: comment | confirm | change | withdraw | reopen */
 function tenantAction(key, id, action, note) {
   requireTenant_(key);
   const req = mustFind_(id);
@@ -273,10 +277,19 @@ function tenantAction(key, id, action, note) {
       touch_(req, null);
       notifyLandlordUpdate_(req, 'Comment from ' + config_().TENANT_NAME, note);
     } else if (action === 'confirm') {
-      if (req.status !== STATUS.SCHEDULED) throw new Error('There is no scheduled time to confirm.');
-      log_(id, 'Tenant', 'Confirmed scheduled time', note);
+      if (req.status !== STATUS.SCHEDULED) throw new Error('There is no scheduled visit to confirm.');
+      if (req.tenantConfirmed) throw new Error('This visit is already confirmed.');
+      log_(id, 'Tenant', 'Confirmed visit: ' + req.scheduledFor, note);
       touch_(req, null);
-      notifyLandlordUpdate_(req, 'Scheduled time confirmed', note || 'The scheduled time works.');
+      setFields_(req, { 'Tenant confirmed': new Date() });
+      notifyLandlordUpdate_(req, 'Visit confirmed: ' + req.scheduledFor, note || 'The scheduled time works.');
+    } else if (action === 'change') {
+      if (req.status !== STATUS.SCHEDULED) throw new Error('There is no scheduled visit to change.');
+      if (!note) throw new Error('Please say what needs to change, and suggest times that work.');
+      log_(id, 'Tenant', 'Requested a schedule change', note);
+      touch_(req, STATUS.RESCHEDULE);
+      setFields_(req, { 'Tenant confirmed': '' });
+      notifyLandlordUpdate_(req, 'Schedule change requested', note);
     } else if (action === 'withdraw') {
       if (OPEN_STATUSES.indexOf(req.status) < 0) throw new Error('This request is already closed.');
       log_(id, 'Tenant', 'Withdrew request', note);
@@ -294,7 +307,7 @@ function tenantAction(key, id, action, note) {
   } finally {
     lock.releaseLock();
   }
-  return detail_(id);
+  return withCal_(detail_(id), mustFind_(id), 'k=' + key);
 }
 
 /* ------------------------------------------------------------------ */
@@ -303,20 +316,20 @@ function tenantAction(key, id, action, note) {
 
 function landlordDetail(id, token) {
   requireLandlordToken_(id, token);
-  return detail_(id);
+  return withCal_(detail_(id), mustFind_(id), 't=' + token);
 }
 
 function landlordList(lkey) {
   if (!safeEqual_(lkey, config_().LANDLORD_KEY)) throw new Error('Link not valid.');
   return allRequests_().map(function (r) {
-    const pr = publicRequest_(r);
+    const pr = withCal_(publicRequest_(r), r, 't=' + r.token);
     pr.link = landlordLink_(r);
     return pr;
   });
 }
 
-/** action: acknowledge | schedule | update | complete | decline */
-function landlordAction(id, token, action, note, scheduledFor, visitor) {
+/** action: acknowledge | schedule | reschedule | update | complete | decline */
+function landlordAction(id, token, action, note, schedule, visitor) {
   requireLandlordToken_(id, token);
   const req = mustFind_(id);
   note = clean_(note, 2000);
@@ -329,18 +342,37 @@ function landlordAction(id, token, action, note, scheduledFor, visitor) {
       log_(id, 'Landlord', 'Acknowledged', note);
       touch_(req, req.status === STATUS.SUBMITTED ? STATUS.ACKNOWLEDGED : null);
       subject = 'Acknowledged'; body = note || 'Your request has been received.';
-    } else if (action === 'schedule') {
-      const when = clean_(scheduledFor, 120);
+    } else if (action === 'schedule' || action === 'reschedule') {
+      if (action === 'schedule' && req.status === STATUS.SCHEDULED) {
+        throw new Error('This visit is already scheduled. Use Request a change instead.');
+      }
+      if (action === 'reschedule') {
+        if (req.status !== STATUS.SCHEDULED) throw new Error('There is no scheduled visit to change.');
+        if (!note) throw new Error('Please explain the change in the message box.');
+      }
+      const sch = schedule && typeof schedule === 'object' ? schedule : { text: schedule };
+      const when = clean_(sch.text, 120);
       if (!when) throw new Error('Please choose a date and time.');
+      const start = sch.start ? new Date(sch.start) : null;
+      const end = sch.end ? new Date(sch.end) : null;
+      if (start && !isNaN(start)) {
+        if (start < new Date()) throw new Error('Please choose a time that has not already passed.');
+        if (req.area !== 'Exterior' && start - new Date() < 24 * 3600 * 1000) {
+          throw new Error('Interior visits need at least 24 hours\' notice. Please choose a later date or time.');
+        }
+      }
       const visit = visitorBlock_(visitor, req.area);
       const full = [note, visit].filter(String).join('\n\n');
-      log_(id, 'Landlord', 'Scheduled: ' + when, full);
+      log_(id, 'Landlord', (action === 'reschedule' ? 'Changed visit to: ' : 'Scheduled: ') + when, full);
       touch_(req, STATUS.SCHEDULED, when);
-      subject = 'Scheduled for ' + when; body = full || 'Work has been scheduled.';
+      setFields_(req, { 'Scheduled start': start && !isNaN(start) ? start : '',
+        'Scheduled end': end && !isNaN(end) ? end : '', 'Tenant confirmed': '' });
+      subject = (action === 'reschedule' ? 'Visit changed to ' : 'Scheduled for ') + when;
+      body = [full, 'Please confirm this time in the tracker, or request a change.'].filter(String).join('\n\n');
     } else if (action === 'update') {
       if (!note) throw new Error('Please enter an update.');
       log_(id, 'Landlord', 'Update', note);
-      touch_(req, req.status === STATUS.SCHEDULED ? null : STATUS.IN_PROGRESS);
+      touch_(req, req.status === STATUS.SCHEDULED || req.status === STATUS.RESCHEDULE ? null : STATUS.IN_PROGRESS);
       subject = 'Update'; body = note;
     } else if (action === 'complete') {
       log_(id, 'Landlord', 'Marked complete', note);
@@ -358,7 +390,7 @@ function landlordAction(id, token, action, note, scheduledFor, visitor) {
     lock.releaseLock();
   }
   notifyTenant_(mustFind_(id), subject, body);
-  return detail_(id);
+  return withCal_(detail_(id), mustFind_(id), 't=' + token);
 }
 
 /**
@@ -388,6 +420,56 @@ function visitorBlock_(v, area) {
   if (email) lines.push('Email: ' + email);
   if (details) lines.push('Details: ' + details);
   return lines.join('\n');
+}
+
+/* ------------------------------------------------------------------ */
+/* Add to calendar                                                    */
+/* ------------------------------------------------------------------ */
+
+/** Adds Google Calendar and .ics links to a scheduled request. auth is "k=..." or "t=...". */
+function withCal_(pub, r, auth) {
+  if (r.status !== STATUS.SCHEDULED || !r.scheduledStart) return pub;
+  const ev = calEvent_(r);
+  pub.gcal = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+    '&text=' + encodeURIComponent(ev.title) + '&dates=' + ev.start + '/' + ev.end +
+    '&details=' + encodeURIComponent(ev.details) + '&location=' + encodeURIComponent(ev.location);
+  pub.ics = config_().WEB_APP_URL + '?ics=' + encodeURIComponent(r.id) + '&' + auth;
+  return pub;
+}
+
+function calEvent_(r) {
+  const c = config_();
+  const start = new Date(r.scheduledStart);
+  const end = r.scheduledEnd ? new Date(r.scheduledEnd) : new Date(start.getTime() + 2 * 3600 * 1000);
+  const stamp = function (d) { return Utilities.formatDate(d, 'UTC', "yyyyMMdd'T'HHmmss'Z'"); };
+  return {
+    title: c.PROPERTY_NAME + ': ' + r.title,
+    start: stamp(start), end: stamp(end),
+    location: [c.PROPERTY_NAME, r.building].filter(String).join(', '),
+    details: r.id + ' · ' + r.scheduledFor + '\n' + [r.building, r.area].filter(String).join(' · ') +
+      (r.description ? '\n\n' + r.description : '')
+  };
+}
+
+/** Serves a downloadable .ics calendar file for one scheduled visit. */
+function icsResponse_(p) {
+  const r = findRequest_(p.ics);
+  const ok = r && ((p.k && safeEqual_(p.k, config_().TENANT_KEY)) || (p.t && safeEqual_(p.t, r.token)));
+  if (!ok || r.status !== STATUS.SCHEDULED || !r.scheduledStart) {
+    return ContentService.createTextOutput('This calendar link is not valid or the visit is no longer scheduled.');
+  }
+  const ev = calEvent_(r);
+  const icsEsc = function (s) { return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); };
+  const ics = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Work Request Tracker//EN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+    'UID:' + r.id + '-' + ev.start + '@work-request-tracker',
+    'DTSTAMP:' + Utilities.formatDate(new Date(), 'UTC', "yyyyMMdd'T'HHmmss'Z'"),
+    'DTSTART:' + ev.start, 'DTEND:' + ev.end,
+    'SUMMARY:' + icsEsc(ev.title), 'LOCATION:' + icsEsc(ev.location), 'DESCRIPTION:' + icsEsc(ev.details),
+    'END:VEVENT', 'END:VCALENDAR'
+  ].join('\r\n');
+  return ContentService.createTextOutput(ics).setMimeType(ContentService.MimeType.ICAL)
+    .downloadAsFile(r.id + '-visit.ics');
 }
 
 /* ------------------------------------------------------------------ */
@@ -496,7 +578,8 @@ function rowToRequest_(v, row) {
     row: row, id: v[0], created: v[1], updated: v[2], title: v[3], category: v[4],
     priority: v[5], location: v[6], description: v[7], access: v[8],
     photos: String(v[9] || '').split('\n').filter(String), status: v[10],
-    scheduledFor: v[11], token: v[12], lastReminder: v[13], building: v[14] || '', area: v[15] || ''
+    scheduledFor: v[11], token: v[12], lastReminder: v[13], building: v[14] || '', area: v[15] || '',
+    scheduledStart: v[16] || '', tenantConfirmed: v[17] || '', scheduledEnd: v[18] || ''
   };
 }
 
@@ -519,6 +602,9 @@ function publicRequest_(r) {
     building: r.building, area: r.area,
     description: r.description, access: r.access, photos: r.photos, status: r.status,
     scheduledFor: r.scheduledFor, open: OPEN_STATUSES.indexOf(r.status) >= 0,
+    scheduledStart: r.scheduledStart ? new Date(r.scheduledStart).toISOString() : '',
+    scheduledEnd: r.scheduledEnd ? new Date(r.scheduledEnd).toISOString() : '',
+    tenantConfirmed: r.tenantConfirmed ? fmt_(r.tenantConfirmed) : '',
     responseTime: responseTime_(r.priority)
   };
 }
@@ -541,6 +627,13 @@ function touch_(req, status, scheduledFor) {
   if (scheduledFor !== undefined) {
     sheet.getRange(req.row, REQUEST_HEADERS.indexOf('Scheduled for') + 1).setValue(scheduledFor);
   }
+}
+
+function setFields_(req, fields) {
+  const sheet = ensureSheet_(SpreadsheetApp.getActive(), SHEET_REQUESTS, REQUEST_HEADERS);
+  Object.keys(fields).forEach(function (h) {
+    sheet.getRange(req.row, REQUEST_HEADERS.indexOf(h) + 1).setValue(fields[h]);
+  });
 }
 
 function log_(id, who, action, note) {

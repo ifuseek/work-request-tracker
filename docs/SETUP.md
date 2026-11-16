@@ -1,6 +1,6 @@
 # Setup and Testing Guide
 
-*For Work Request Tracker v1.5.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
+*For Work Request Tracker v1.6.0. Every file carries its version in its first lines, and every page, dialog and email shows it, so you can confirm the live version matches the files you pasted.*
 
 This guide takes you from nothing to a working, tested tracker. Each step lists **what to do**, **what you should see**, and **what to check** before moving on. Plan on 20 to 30 minutes, including testing.
 
@@ -101,7 +101,7 @@ This guide takes you from nothing to a working, tested tracker. Each step lists 
 3. In the **Execution log**, copy the line that starts "Your tenant link."
 4. Open it in your browser and **bookmark it.**
 
-**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.5.0`) at the bottom, with **Open** and **Closed** tabs, a **+ New request** button, and "No open requests."
+**You should see:** a page headed "*Your property* · Work Requests," with the version (for example `Work Request Tracker v1.6.0`) at the bottom, with **Summary** and **All requests** tabs, a **+ New request** button, summary tiles (Open requests, Upcoming visits, Need your confirmation) and a calendar.
 
 **Check:** the tenant link works like a password. Don't share it. If you open the bare URL without `?k=...`, you should see "This link is not valid," which confirms the protection is working.
 
@@ -167,14 +167,58 @@ Run these tests with **LANDLORD_EMAIL set to your own email**, so you receive bo
 - [ ] You receive a "Scheduled for Saturday, November 21, ..." email that lists the contractor's company, contact and phone
 - [ ] History shows the same visit details
 
-### Test 3: Confirm and message (tenant)
-1. Open your tenant link and click **WR-0001**.
-2. Click **Confirm scheduled time**.
-3. Type a comment under **Follow-up / Additional comment** and click **Send follow-up**.
+### Test 3: Confirm, add to calendar, and request a change (tenant)
+1. Open your tenant link. On **Summary**, check the tiles, **Needs your attention**, **Upcoming visits** and the **Calendar**.
 
 **Validate:**
-- [ ] History shows "Confirmed scheduled time" and your message, with time stamps
-- [ ] The landlord email address receives an email for each
+- [ ] "Need your confirmation" shows 1, and WR-0001 appears under **Needs your attention**
+- [ ] The visit day is highlighted on the calendar; tapping it lists the visit, and tapping the visit opens it
+
+2. Open WR-0001. In **Scheduled visit**, click **Add to Google Calendar**, then **Download .ics (Apple, Outlook)**.
+
+**Validate:**
+- [ ] Google Calendar opens a new event with the title, date, time and location filled in
+- [ ] The .ics file downloads and opens in Apple Calendar or Outlook at the same time
+
+3. Click **Confirm this time**.
+
+**Validate:**
+- [ ] The card shows "Confirmed" with a time stamp, and the Confirm button is gone
+- [ ] History shows "Confirmed visit: ..." and the landlord email receives "Visit confirmed"
+
+4. Click **Request a change**, leave the box empty and click **Send change request**. Then type a reason with times that work and send it.
+
+**Validate:**
+- [ ] The empty request is blocked
+- [ ] The status changes to **Change requested**, the confirmation is cleared, and the landlord receives "Schedule change requested"
+
+5. Type a comment under **Follow-up / Additional comment** and click **Send follow-up**.
+
+**Validate:**
+- [ ] History shows your message with a time stamp, and the landlord receives an email
+
+### Test 3b: Respond to the change (landlord)
+1. From the landlord link, open WR-0001.
+
+**Validate:**
+- [ ] The page shows **The tenant asked to change the visit** with the tenant's note, and a **Propose a new time** form. There is no separate "Schedule a visit" card
+
+2. Choose a new date and time, fill in who is coming, and click **Send new time**.
+
+**Validate:**
+- [ ] The status returns to **Scheduled**, awaiting tenant confirmation, and the tenant receives the new time
+- [ ] The card now shows **Scheduled visit** with **Add to Google Calendar**, **Download .ics** and **Request a change**. The schedule form is hidden
+
+3. Click **Request a change**, pick another time, leave the reason empty and click **Send new time**. Then add a reason and send.
+
+**Validate:**
+- [ ] The empty reason is blocked: "Please explain the change so the tenant understands."
+- [ ] History shows "Changed visit to: ..." with the reason, and the tenant must confirm again
+
+4. Click **← All requests** at the top.
+
+**Validate:**
+- [ ] The overview opens with tiles, **Needs your response**, **Upcoming visits**, a **Calendar**, **Other open requests** and **Closed**
 
 ### Test 4: Complete and reopen
 1. From the landlord link, click **Mark complete**.

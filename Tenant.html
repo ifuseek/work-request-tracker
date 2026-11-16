@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Work Request Tracker v1.5.0 -->
+<!-- Work Request Tracker v1.6.0 -->
 <html>
 <head>
   <base target="_top">
@@ -15,8 +15,8 @@
     <section id="listView">
       <div class="row" style="margin-bottom:12px">
         <div class="tabs">
-          <button id="tabOpen" onclick="setFilter('open')">Open</button>
-          <button id="tabClosed" class="secondary" onclick="setFilter('closed')">Closed</button>
+          <button id="tabOpen" onclick="setFilter('open')">Summary</button>
+          <button id="tabAll" class="secondary" onclick="setFilter('all')">All requests</button>
         </div>
         <button onclick="showForm()">+ New request</button>
       </div>
@@ -101,30 +101,67 @@
     function setFilter(f) {
       filter = f;
       document.getElementById('tabOpen').className = f === 'open' ? '' : 'secondary';
-      document.getElementById('tabClosed').className = f === 'closed' ? '' : 'secondary';
+      document.getElementById('tabAll').className = f === 'all' ? '' : 'secondary';
       renderList();
     }
 
     function renderList() {
       var list = document.getElementById('list');
       clear(list);
-      var items = requests.filter(function (r) { return filter === 'open' ? r.open : !r.open; });
-      if (!items.length) {
-        list.appendChild(el('p', { class: 'muted', text: filter === 'open' ? 'No open requests.' : 'No closed requests.' }));
+      if (filter === 'all') {
+        if (!requests.length) { list.appendChild(el('p', { class: 'muted', text: 'No requests yet.' })); return; }
+        var openAll = requests.filter(function (r) { return r.open; });
+        var closed = requests.filter(function (r) { return !r.open; });
+        list.appendChild(sectionTitle('Open (' + openAll.length + ')'));
+        if (!openAll.length) list.appendChild(el('p', { class: 'muted', text: 'No open requests.' }));
+        openAll.forEach(function (r) { list.appendChild(requestRow(r)); });
+        list.appendChild(sectionTitle('Closed (' + closed.length + ')'));
+        if (!closed.length) list.appendChild(el('p', { class: 'muted', text: 'No closed requests.' }));
+        closed.forEach(function (r) { list.appendChild(requestRow(r)); });
         return;
       }
-      items.forEach(function (r) {
-        list.appendChild(el('div', { class: 'card list-item', onclick: function () { openDetail(r.id); } }, [
-          el('div', { class: 'row' }, [
-            el('strong', { text: r.id + ' · ' + r.title }),
-            el('span', { class: statusClass(r.status), text: r.status })
-          ]),
-          el('div', { class: 'muted', text: [r.building, r.area].filter(Boolean).join(' · ') + (r.building ? ' · ' : '') +
-            r.category + ' · ' + r.priority.split(' (')[0] +
-            (r.scheduledFor && r.status === 'Scheduled' ? ' · Scheduled ' + r.scheduledFor : '') +
-            ' · Updated ' + r.updated })
-        ]));
-      });
+      var open = requests.filter(function (r) { return r.open; });
+      var visits = upcomingVisits(requests);
+      var attention = visits.filter(function (r) { return !r.tenantConfirmed; });
+      var waiting = open.filter(function (r) { return r.status !== 'Scheduled'; });
+
+      list.appendChild(el('div', { class: 'stats' }, [
+        stat(open.length, 'Open requests'), stat(visits.length, 'Upcoming visits'),
+        stat(attention.length, 'Need your confirmation', attention.length ? 'alert' : '')
+      ]));
+
+      if (attention.length) {
+        list.appendChild(sectionTitle('Needs your attention'));
+        attention.forEach(function (r) {
+          list.appendChild(el('div', { class: 'card attention list-item', onclick: function () { openDetail(r.id); } }, [
+            el('strong', { text: 'Please confirm: ' + r.title }),
+            el('div', { text: r.scheduledFor }),
+            el('div', { class: 'muted', text: 'Open to confirm this time or request a change.' })
+          ]));
+        });
+      }
+
+      list.appendChild(sectionTitle('Upcoming visits'));
+      if (!visits.length) list.appendChild(el('p', { class: 'muted', text: 'No visits scheduled.' }));
+      visits.forEach(function (r) { list.appendChild(visitRow(r, function () { openDetail(r.id); }, 'Awaiting your confirmation')); });
+
+      list.appendChild(sectionTitle('Calendar'));
+      list.appendChild(visitCalendar(requests, function (r) { openDetail(r.id); }));
+
+      list.appendChild(sectionTitle('Waiting on scheduling or a response'));
+      if (!waiting.length) list.appendChild(el('p', { class: 'muted', text: 'Nothing waiting.' }));
+      waiting.forEach(function (r) { list.appendChild(requestRow(r)); });
+    }
+
+    function requestRow(r) {
+      return el('div', { class: 'card list-item', onclick: function () { openDetail(r.id); } }, [
+        el('div', { class: 'row' }, [
+          el('strong', { text: r.id + ' · ' + r.title }),
+          el('span', { class: statusClass(r.status), text: r.status })
+        ]),
+        el('div', { class: 'muted', text: where(r) + (r.building ? ' · ' : '') +
+          r.category + ' · ' + r.priority.split(' (')[0] + ' · Updated ' + r.updated })
+      ]);
     }
 
     function show(view) {
@@ -229,7 +266,6 @@
     // Explains how the comment box applies to the other buttons currently shown.
     function helpLine(r) {
       var parts = [];
-      if (r.status === 'Scheduled') parts.push('confirming the time');
       if (r.open) parts.push('withdrawing');
       var text = parts.length ? 'Any comment you write is also included when ' + parts.join(' or ') + '.' : '';
       if (r.status === 'Completed') text = 'To reopen, describe what still needs attention.';
@@ -253,7 +289,6 @@
         };
       }
       var actions = [el('button', { onclick: act('comment', true), text: 'Send follow-up' })];
-      if (r.status === 'Scheduled') actions.push(el('button', { class: 'secondary', onclick: act('confirm'), text: 'Confirm scheduled time' }));
       if (r.status === 'Completed') actions.push(el('button', { class: 'secondary', onclick: act('reopen', true), text: 'Reopen (not resolved)' }));
       if (r.open) actions.push(el('button', { class: 'danger', onclick: act('withdraw'), text: 'Withdraw request' }));
 
@@ -263,17 +298,64 @@
           el('span', { class: statusClass(r.status), text: r.status })
         ]),
         el('div', { class: 'muted', text: 'Submitted ' + r.created + ' · Updated ' + r.updated }),
-        r.scheduledFor ? el('div', { class: 'notice', style: 'margin-top:10px', text: 'Scheduled: ' + r.scheduledFor }) : null,
         field('Category', r.category), field('Priority', r.priority + ' · requested response ' + r.responseTime),
         field('Where', [r.building, r.area].filter(Boolean).join(' · ')),
         field('Specific location', r.location), field('Description', r.description, true),
         field('Access and scheduling notes', r.access, true), photosBlock(r.photos)
       ]));
+      var visitCard = scheduleCard(r);
+      if (visitCard) d.appendChild(visitCard);
       d.appendChild(el('div', { class: 'card' }, [el('h3', { style: 'margin-top:0;font-size:16px', text: 'History' }), timeline(r.log)]));
       d.appendChild(el('div', { class: 'card' }, [
         el('h3', { style: 'margin-top:0;font-size:16px', text: 'Follow-up / Additional comment' }),
         noteBox, el('div', { class: 'actions' }, actions), helpLine(r), errBox
       ]));
+    }
+
+    // The latest visit details the landlord entered (who is coming, contact, notes).
+    function lastVisitNote(r) {
+      for (var i = r.log.length - 1; i >= 0; i--) {
+        if (/^(Scheduled|Changed visit to)/.test(r.log[i].action)) return r.log[i].note;
+      }
+      return '';
+    }
+
+    function scheduleCard(r) {
+      if (r.status === 'Change requested') {
+        return el('div', { class: 'card attention' }, [
+          el('h3', { style: 'margin-top:0;font-size:16px', text: 'Change requested' }),
+          el('div', { text: 'You asked to change the visit. The landlord will propose a new time here.' })
+        ]);
+      }
+      if (r.status !== 'Scheduled') return null;
+      var reason = el('textarea', { placeholder: 'What needs to change? Suggest days and times that work for you.' });
+      var errBox = el('div', { class: 'error' });
+      var changePanel = el('div', { class: 'hidden' }, [el('label', { text: 'Request a change' }), reason,
+        el('div', { class: 'actions' }, [el('button', { class: 'secondary', text: 'Send change request', onclick: function (ev) {
+          if (!reason.value.trim()) { errBox.textContent = 'Please say what needs to change and suggest times that work.'; return; }
+          busy(ev.target, true);
+          call('tenantAction', [KEY, r.id, 'change', reason.value]).then(renderDetail)
+            .catch(function (e) { errBox.textContent = e; busy(ev.target, false); });
+        } })])]);
+      var buttons = [];
+      if (!r.tenantConfirmed) buttons.push(el('button', { text: 'Confirm this time', onclick: function (ev) {
+        busy(ev.target, true);
+        call('tenantAction', [KEY, r.id, 'confirm', '']).then(renderDetail)
+          .catch(function (e) { errBox.textContent = e; busy(ev.target, false); });
+      } }));
+      buttons.push(el('button', { class: 'secondary', text: 'Request a change', onclick: function () {
+        changePanel.classList.remove('hidden'); reason.focus();
+      } }));
+      var note = lastVisitNote(r);
+      return el('div', { class: 'card ' + (r.tenantConfirmed ? '' : 'attention') }, [
+        el('h3', { style: 'margin-top:0;font-size:16px', text: 'Scheduled visit' }),
+        el('div', { class: 'when', text: r.scheduledFor }),
+        el('span', { class: 'badge ' + (r.tenantConfirmed ? 'Completed' : 'Submitted'),
+          text: r.tenantConfirmed ? 'Confirmed ' + r.tenantConfirmed : 'Awaiting your confirmation' }),
+        note ? el('div', { class: 'pre muted', style: 'margin-top:10px', text: note }) : null,
+        calLinks(r),
+        el('div', { class: 'actions' }, buttons), changePanel, errBox
+      ]);
     }
 
     init();

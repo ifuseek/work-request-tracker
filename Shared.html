@@ -1,4 +1,4 @@
-<!-- Work Request Tracker v1.5.0 -->
+<!-- Work Request Tracker v1.6.0 -->
 <script>
   // Shared client helpers (no data is rendered as HTML; everything uses textContent).
   function el(tag, attrs, children) {
@@ -44,4 +44,98 @@
     return ul;
   }
   function busy(btn, on) { if (btn) { btn.disabled = on; } }
+
+  function stat(n, label, cls) {
+    return el('div', { class: 'stat ' + (cls || '') }, [el('div', { class: 'stat-n', text: String(n) }), el('div', { class: 'stat-l', text: label })]);
+  }
+  function sectionTitle(text) { return el('h3', { class: 'section-title', text: text }); }
+  function where(r) { return [r.building, r.area].filter(Boolean).join(' · '); }
+
+  // Splits "Saturday, November 21, 2026, Afternoon, 12:00 PM to 4:00 PM" into date and time parts.
+  function splitWhen(r) {
+    var parts = String(r.scheduledFor || '').split(', ');
+    return parts.length > 3 ? { date: parts.slice(0, 3).join(', '), time: parts.slice(3).join(', ') } : { date: r.scheduledFor, time: '' };
+  }
+
+  // Scheduled visits, soonest first.
+  function upcomingVisits(items) {
+    return items.filter(function (r) { return r.open && r.status === 'Scheduled'; })
+      .sort(function (a, b) { return (a.scheduledStart || '9').localeCompare(b.scheduledStart || '9'); });
+  }
+
+  // A visit row with a calendar-style date box. confirmText labels the unconfirmed state.
+  function visitRow(r, onOpen, confirmText) {
+    var d = r.scheduledStart ? new Date(r.scheduledStart) : null;
+    var when = splitWhen(r);
+    var dateBox = d ? el('div', { class: 'datebox' }, [
+      el('div', { class: 'db-dow', text: d.toLocaleDateString('en-US', { weekday: 'short' }) }),
+      el('div', { class: 'db-day', text: String(d.getDate()) }),
+      el('div', { class: 'db-mon', text: d.toLocaleDateString('en-US', { month: 'short' }) })
+    ]) : null;
+    return el('div', { class: 'card list-item visit', onclick: onOpen }, [
+      dateBox,
+      el('div', { class: 'visit-body' }, [
+        el('strong', { text: r.title }),
+        el('div', { text: when.date }),
+        el('div', { class: 'muted', text: [when.time, where(r)].filter(Boolean).join(' · ') }),
+        el('span', { class: 'badge ' + (r.tenantConfirmed ? 'Completed' : 'Submitted'), style: 'margin-top:6px',
+          text: r.tenantConfirmed ? 'Confirmed by tenant' : confirmText })
+      ])
+    ]);
+  }
+
+  // Add-to-calendar buttons for a scheduled visit (links come from the server).
+  function calLinks(r) {
+    if (!r.gcal && !r.ics) return null;
+    return el('div', { class: 'cal-links' }, [
+      r.gcal ? el('a', { class: 'btn-link', href: r.gcal, target: '_blank', rel: 'noopener', text: 'Add to Google Calendar' }) : null,
+      r.ics ? el('a', { class: 'btn-link', href: r.ics, target: '_blank', rel: 'noopener', text: 'Download .ics (Apple, Outlook)' }) : null
+    ]);
+  }
+
+  // Month calendar that highlights days with scheduled visits. Tap a day to see its visits.
+  function visitCalendar(items, onOpen) {
+    var visits = upcomingVisits(items).filter(function (r) { return r.scheduledStart; });
+    var byDay = {};
+    var key = function (d) { return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+    visits.forEach(function (r) { var k = key(new Date(r.scheduledStart)); (byDay[k] = byDay[k] || []).push(r); });
+    var today = new Date();
+    var first = visits.length ? new Date(visits[0].scheduledStart) : today;
+    var month = new Date(first.getFullYear(), first.getMonth(), 1);
+    var title = el('div', { class: 'cal-title' });
+    var grid = el('div', { class: 'cal-grid' });
+    var dayList = el('div', { class: 'cal-day-list' });
+    var prev = el('button', { class: 'secondary cal-nav', 'aria-label': 'Previous month', text: '‹', onclick: function () { month.setMonth(month.getMonth() - 1); draw(); } });
+    var next = el('button', { class: 'secondary cal-nav', 'aria-label': 'Next month', text: '›', onclick: function () { month.setMonth(month.getMonth() + 1); draw(); } });
+
+    function showDay(d) {
+      clear(dayList);
+      var list = byDay[key(d)] || [];
+      dayList.appendChild(el('div', { class: 'muted', style: 'margin:8px 0 4px',
+        text: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) + (list.length ? '' : ': no visits') }));
+      list.forEach(function (r) {
+        dayList.appendChild(el('a', { class: 'cal-visit', href: '#', onclick: function (ev) { ev.preventDefault(); onOpen(r); } }, [
+          el('strong', { text: r.title }), el('span', { class: 'muted', text: ' · ' + (splitWhen(r).time || r.scheduledFor) })
+        ]));
+      });
+    }
+    function draw() {
+      title.textContent = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      clear(grid); clear(dayList);
+      ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(function (d) { grid.appendChild(el('div', { class: 'cal-dow', text: d })); });
+      for (var i = 0; i < month.getDay(); i++) grid.appendChild(el('div', {}));
+      var days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+      for (var n = 1; n <= days; n++) {
+        (function (d) {
+          var has = byDay[key(d)];
+          var cls = 'cal-day' + (has ? ' has-visit' : '') + (key(d) === key(today) ? ' today' : '');
+          grid.appendChild(el('button', { class: cls, 'aria-label': d.toDateString() + (has ? ', ' + has.length + ' visit' : ''),
+            onclick: function () { showDay(d); } }, [String(d.getDate()), has ? el('span', { class: 'cal-dot' }) : null]));
+        })(new Date(month.getFullYear(), month.getMonth(), n));
+      }
+    }
+    draw();
+    return el('div', { class: 'card cal' }, [el('div', { class: 'cal-head' }, [prev, title, next]), grid, dayList,
+      el('div', { class: 'help', text: visits.length ? 'Highlighted days have a scheduled visit. Tap a day for details.' : 'No visits scheduled yet.' })]);
+  }
 </script>

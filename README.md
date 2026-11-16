@@ -53,6 +53,8 @@ stateDiagram-v2
     Submitted --> Scheduled: landlord
     Acknowledged --> Scheduled: landlord
     Acknowledged --> InProgress: update
+    Scheduled --> ChangeRequested: tenant asks for a change
+    ChangeRequested --> Scheduled: landlord proposes a new time
     Scheduled --> Completed: landlord
     InProgress --> Completed: landlord
     Submitted --> Declined: with explanation
@@ -69,15 +71,17 @@ stateDiagram-v2
 **Tenant**
 - Submit a request with category, priority, location, description, access notes and up to 5 photos (resized in the browser before upload)
 - Priority sets the requested response time (urgent, standard, routine), shown to both parties
-- Open and closed views, with full history on each request
-- Send a message, confirm a scheduled time, withdraw, or reopen a request that wasn't resolved
+- A Summary page with what needs attention, upcoming visits and a calendar, plus an All requests view
+- Confirm a scheduled time or request a change, add the visit to Google Calendar or download an .ics file
+- Send a message, withdraw, or reopen a request that wasn't resolved
 
 **Landlord**
 - No account, no password: each email links to that one request
 - Acknowledge, schedule a visit with a date picker and time window (shown with the full day, for example "Saturday, November 21"), post an update, mark complete, or decline with a short explanation
 - Interior visits must be scheduled at least 24 hours ahead
 - Scheduling records who will be on site; contractors entering the home must give company, contact person and phone
-- Optional overview link listing all requests
+- Once scheduled, the visit is locked in; either side can request a change with a reason, and the landlord can propose a new time
+- An overview of all requests with what needs a response, upcoming visits and a calendar, linked from every request page
 - Photos attached to the first email
 
 **Process and record**
@@ -88,12 +92,17 @@ stateDiagram-v2
 <p>
   <img src="docs/screenshots/tenant-new-request.png" width="240" alt="New request form">
   <img src="docs/screenshots/landlord-schedule.png" width="240" alt="Scheduling a visit with contractor details">
-  <img src="docs/screenshots/landlord-overview.png" width="240" alt="Landlord overview">
+  <img src="docs/screenshots/landlord-overview.png" width="240" alt="Landlord overview with calendar">
+</p>
+<p>
+  <img src="docs/screenshots/landlord-change-requested.png" width="240" alt="Landlord responding to a change request">
+  <img src="docs/screenshots/tenant-all-requests.png" width="240" alt="Tenant All requests view">
+  <img src="docs/screenshots/calendar.png" width="240" alt="Visit calendar">
 </p>
 
 ## Security and privacy
 
-- **Links are keys.** The tenant link and each landlord link carry long random tokens, compared in constant time on the server. A landlord link opens only its own request.
+- **Links are keys.** The tenant link and each landlord link carry long random tokens, compared in constant time on the server. A landlord link acts only on its own request; its **All requests** link carries the landlord overview key, so treat landlord emails as private. Calendar (.ics) links check the same keys.
 - **Every server call is authorized,** not just the page load.
 - **Safe rendering.** Pages render user text with `textContent`, never as HTML, and email content is escaped.
 - **No personal data in the code.** Names, emails and requests live in the owner's Sheet.

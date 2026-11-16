@@ -55,10 +55,31 @@ const DEFAULT_CONFIG = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Sheet menu                                                         */
+/* ------------------------------------------------------------------ */
+
+/** Adds a "Work Requests" menu to the Sheet so no one needs the script editor. */
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('Work Requests')
+    .addItem('1. Set up tracker', 'setup')
+    .addItem('2. Show my links', 'showLinks')
+    .addSeparator()
+    .addItem('Turn on daily reminders', 'installReminderTrigger')
+    .addItem('Send reminders now', 'sendReminders')
+    .addToUi();
+}
+
+/** Shows a message in the Sheet when run from the menu; logs it otherwise. */
+function notify_(title, message) {
+  Logger.log(title + ': ' + message);
+  try { SpreadsheetApp.getUi().alert(title, message, SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* run from editor */ }
+}
+
+/* ------------------------------------------------------------------ */
 /* Setup                                                              */
 /* ------------------------------------------------------------------ */
 
-/** Run once from the editor. Creates the tabs, keys and photo folder. */
+/** Run once (Work Requests > 1. Set up tracker). Creates the tabs, keys and photo folder. */
 function setup() {
   const ss = SpreadsheetApp.getActive();
   ensureSheet_(ss, SHEET_REQUESTS, REQUEST_HEADERS);
@@ -84,15 +105,43 @@ function setup() {
 
   photoFolder_();
   SpreadsheetApp.flush();
-  Logger.log('Setup complete. Fill in the Config tab, deploy as a web app, then paste the web app URL into WEB_APP_URL.');
+  try { cfg.activate(); } catch (e) { /* run from editor */ }
+  notify_('Setup complete',
+    'Next steps:\n\n' +
+    '1. On this Config tab, fill in the names, emails and response times in column B. ' +
+    'Use your own email for LANDLORD_EMAIL while testing.\n\n' +
+    '2. Deploy the web app (Extensions > Apps Script > Deploy > New deployment > Web app; ' +
+    'Execute as Me; Who has access: Anyone).\n\n' +
+    '3. Paste the web app URL into WEB_APP_URL, then choose Work Requests > 2. Show my links.');
 }
 
-/** Run after deploying, to print the private links. */
+/** Shows the private links (Work Requests > 2. Show my links). */
 function showLinks() {
   const c = config_();
-  if (!c.WEB_APP_URL) throw new Error('Paste the web app URL into WEB_APP_URL on the Config tab first.');
-  Logger.log('Your tenant link (keep private): ' + c.WEB_APP_URL + '?k=' + c.TENANT_KEY);
-  Logger.log('Landlord overview link (optional, send to landlord): ' + c.WEB_APP_URL + '?lk=' + c.LANDLORD_KEY);
+  if (!c.WEB_APP_URL) {
+    notify_('Web app URL needed',
+      'Deploy the web app first, then paste its URL (ending in /exec) into WEB_APP_URL on the Config tab.');
+    return;
+  }
+  const tenant = c.WEB_APP_URL + '?k=' + c.TENANT_KEY;
+  const landlord = c.WEB_APP_URL + '?lk=' + c.LANDLORD_KEY;
+  Logger.log('Your tenant link (keep private): ' + tenant);
+  Logger.log('Landlord overview link (optional): ' + landlord);
+  const box = function (label, help, url, id) {
+    return '<p style="margin:16px 0 4px"><b>' + esc_(label) + '</b><br><span style="color:#616e7c">' + esc_(help) +
+      '</span></p><input id="' + id + '" readonly value="' + esc_(url) + '" style="width:100%;padding:6px;font-size:12px">' +
+      '<p style="margin:6px 0"><button onclick="var i=document.getElementById(\'' + id + '\');i.select();' +
+      'document.execCommand(\'copy\');this.textContent=\'Copied\'">Copy</button> ' +
+      '<a href="' + esc_(url) + '" target="_blank">Open</a></p>';
+  };
+  try {
+    const html = HtmlService.createHtmlOutput(
+      '<div style="font-family:Arial,sans-serif;font-size:14px">' +
+      box('Your tenant link', 'Bookmark it and keep it private. It works like a password.', tenant, 't') +
+      box('Landlord overview link (optional)', 'Lists all requests. The landlord also gets a link in every email.', landlord, 'l') +
+      '</div>').setWidth(520).setHeight(360);
+    SpreadsheetApp.getUi().showModalDialog(html, 'Your links');
+  } catch (e) { /* run from editor: links are in the execution log */ }
 }
 
 /** Optional: daily reminder to the landlord for requests not yet acknowledged. */
@@ -101,7 +150,9 @@ function installReminderTrigger() {
     if (t.getHandlerFunction() === 'sendReminders') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('sendReminders').timeBased().everyDays(1).atHour(9).create();
-  Logger.log('Daily reminder installed (9 AM).');
+  notify_('Daily reminders on',
+    'Each morning around 9 AM, the landlord gets one reminder for any request still "Submitted" after ' +
+    (config_().REMINDER_AFTER_DAYS || 3) + ' days.');
 }
 
 /* ------------------------------------------------------------------ */

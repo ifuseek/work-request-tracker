@@ -123,7 +123,7 @@ The app requests only what it needs. It **cannot** read your other files, email 
 
 ## Tech
 
-Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Drive (Advanced Drive service, `drive.file` scope) for photos, MailApp for email, and time-driven triggers for reminders. Plain HTML, CSS and JavaScript, with no build step and no runtime dependencies. Delivery: GitHub Actions runs the tests and a version-consistency check, then deploys with clasp; a version tag promotes the build to the live web app.
+Google Apps Script (V8), HtmlService, Google Sheets as the datastore, Google Drive (Advanced Drive service, `drive.file` scope) for photos, MailApp for email, and time-driven triggers for reminders. Plain HTML, CSS and JavaScript, with no build step and no runtime dependencies. Delivery: GitHub Actions runs the tests and a version-consistency check, then deploys with clasp, signed in with only the Apps Script permissions it needs; a version tag promotes the build to the live web app.
 
 ## Setup (20 to 30 minutes, including testing)
 

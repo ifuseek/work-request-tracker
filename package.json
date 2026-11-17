@@ -14,7 +14,7 @@
     "push": "node scripts/deploy.js push",
     "watch": "node scripts/deploy.js connect && clasp push --watch",
     "release": "node scripts/deploy.js release",
-    "login": "clasp login --no-localhost"
+    "login": "node scripts/login.mjs"
   },
   "devDependencies": {
     "@google/clasp": "3.4.1"

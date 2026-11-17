@@ -11,7 +11,7 @@ const cur = code.match(/const APP_VERSION = '([\d.]+)'/)[1];
 if (cur === next) { console.error('Already at ' + next); process.exit(1); }
 const esc = cur.replace(/\./g, '\\.');
 const files = ['Code.gs', 'Tenant.html', 'Landlord.html', 'Shared.html', 'Styles.html', '.claspignore', '.gitignore',
-  'scripts/check-version.js', 'scripts/bump-version.js', 'scripts/deploy.js', 'tests/flow.test.js', 'docs/SETUP.md', 'docs/DEVELOPMENT.md'];
+  'scripts/check-version.js', 'scripts/bump-version.js', 'scripts/deploy.js', 'scripts/login.mjs', 'tests/flow.test.js', 'docs/SETUP.md', 'docs/DEVELOPMENT.md'];
 files.forEach((f) => {
   const p = path.join(root, f);
   let s = fs.readFileSync(p, 'utf8');

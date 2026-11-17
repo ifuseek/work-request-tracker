@@ -50,7 +50,7 @@ In the GitHub repo: **Settings > Secrets and variables > Actions > New repositor
    npm ci
    npm run login
    ```
-3. clasp prints a long Google link. Open it, sign in with the account that owns the Sheet, and click **Allow**.
+3. The terminal lists the three permissions it will ask for, then prints a long Google link. Open it, sign in with the account that owns the Sheet, and check that Google asks only to **see, edit, create and delete your Google Apps Script projects**, **create and update Apps Script deployments**, and **see your email address**. Then click **Allow**. If Google lists Google Cloud data such as BigQuery, Compute Engine or Cloud Storage, stop: that is the standard clasp sign-in, not this project's.
 4. The browser lands on a page that won't load (its address starts with `http://localhost`). That's expected. **Copy the full address** from the address bar, paste it into the terminal, and press Enter. You should see **"You are logged in as ..."**.
 5. Show the saved credentials: `cat ~/.clasprc.json`. Copy the entire output.
 6. Back in **Settings > Secrets and variables > Actions**, add `CLASPRC_JSON` and paste it.
@@ -104,6 +104,8 @@ Then run it again with **release**.
 Install Node.js 20 or later ([nodejs.org](https://nodejs.org), LTS), clone the repo, then run `npm ci`, `npm run login` and create the two files above. The same commands work locally. GitHub Actions remains the normal way to deploy, so the repo always matches what is live.
 
 ## Security notes
+
+- **Least-privilege sign-in.** The standard `clasp login` requests broad Google Cloud access (`cloud-platform`, logging, service management and Drive metadata). Uploading code, saving versions and updating a deployment use only the Apps Script API, so `npm run login` (`scripts/login.mjs`) requests just `script.projects`, `script.deployments` and `userinfo.email`. Other clasp commands, such as `clasp logs` or `clasp open-api-console`, won't work with this sign-in, and the pipeline doesn't use them.
 
 - **The `CLASPRC_JSON` secret can manage your Apps Script projects.** It is stored encrypted by GitHub and is only available to workflows in this repo, never to forks or pull requests from forks. To revoke it, remove "clasp" at [myaccount.google.com/permissions](https://myaccount.google.com/permissions), and delete the secret.
 - **When the secret stops working.** It ends if you change your Google password or revoke access. Repeat step 5.

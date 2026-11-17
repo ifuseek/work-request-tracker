@@ -11,7 +11,7 @@ if (!m) { console.error('APP_VERSION not found in Code.gs'); process.exit(1); }
 const v = m[1];
 const problems = [];
 const inline = ['Code.gs', 'Tenant.html', 'Landlord.html', 'Shared.html', 'Styles.html', '.claspignore', '.gitignore',
-  'scripts/check-version.js', 'scripts/bump-version.js', 'scripts/deploy.js', 'tests/flow.test.js', 'docs/SETUP.md', 'docs/DEVELOPMENT.md'];
+  'scripts/check-version.js', 'scripts/bump-version.js', 'scripts/deploy.js', 'scripts/login.mjs', 'tests/flow.test.js', 'docs/SETUP.md', 'docs/DEVELOPMENT.md'];
 inline.forEach((f) => {
   if (!fs.existsSync(path.join(root, f))) return problems.push(f + ' is missing');
   const head = read(f).split('\n').slice(0, 5).join('\n');

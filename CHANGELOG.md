@@ -8,6 +8,7 @@ Each file carries its version inline (a comment at the top, and `APP_VERSION` in
 - `npm test`: a version-consistency check plus the server flow tests, now in `tests/`
 - `npm run bump -- x.y.z`: moves every file to a new version and adds a CHANGELOG entry
 - `npm run push` / `npm run release`: the same deploy from your own computer (optional)
+- `npm run login`: least-privilege clasp sign-in requesting only the Apps Script permissions the deploy needs, instead of clasp's default broad Google Cloud access
 - New guide: `docs/DEVELOPMENT.md`. `SETUP.md` now points there for updates
 - App behavior is unchanged; `Code.gs` and the pages change only their version number
 
